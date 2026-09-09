@@ -9,6 +9,7 @@ import { stats } from '../lib/calc'
 import { Card, Empty, Loading, Field, TagChip, Stat, Segmented } from '../components/ui'
 import TradeForm from '../components/TradeForm'
 import TradeCalendar from '../components/TradeCalendar'
+import ReminderTicker from '../components/ReminderTicker'
 
 const monthOf = (d) => d.slice(0, 7)
 const monthLabel = (m) =>
@@ -253,6 +254,8 @@ export default function Trades() {
           )}
         </Card>
       )}
+
+      <ReminderTicker />
 
       {showForm && (
         <TradeForm

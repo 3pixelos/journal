@@ -37,7 +37,7 @@ export default function Dashboard() {
     const [{ data: t }, { data: r }] = await Promise.all([
       supabase.from('trades').select('*').eq('user_id', user.id).gte('trade_date', since),
       supabase.from('reminders').select('*').eq('user_id', user.id)
-        .eq('is_active', true).order('sort_order'),
+        .order('sort_order').order('created_at'),
     ])
 
     setTrades(t || [])

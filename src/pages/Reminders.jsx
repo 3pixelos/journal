@@ -62,11 +62,6 @@ export default function Reminders() {
     load()
   }
 
-  async function toggle(item) {
-    await supabase.from('reminders').update({ is_active: !item.is_active }).eq('id', item.id)
-    load()
-  }
-
   async function remove(id) {
     await supabase.from('reminders').delete().eq('id', id)
     setShowForm(false)
@@ -85,8 +80,6 @@ export default function Reminders() {
     load()
   }
 
-  const active = items.filter((i) => i.is_active)
-
   return (
     <div className="col" style={{ gap: 16 }}>
       <div className="row-wrap">
@@ -94,7 +87,7 @@ export default function Reminders() {
           <h2>My trading rules</h2>
           <div className="small muted">
             The things you tell yourself before the market talks you out of them.
-            Active rules show on your dashboard every day.
+            They sit on your dashboard and cycle past you while you log trades.
           </div>
         </div>
         <div className="spacer" />
@@ -114,7 +107,7 @@ export default function Reminders() {
         ) : (
           <div className="col" style={{ gap: 8 }}>
             {items.map((item, i) => (
-              <div className={`reminder ${item.is_active ? '' : 'paused'}`} key={item.id}>
+              <div className="reminder" key={item.id}>
                 <span className="rnum">{i + 1}</span>
                 <div className="grow" style={{ minWidth: 0 }}>
                   <div className="rtext">{item.text}</div>
@@ -123,10 +116,6 @@ export default function Reminders() {
                 <div className="row" style={{ gap: 4 }}>
                   <button className="btn-sm btn-ghost" onClick={() => move(item, -1)} title="Move up">↑</button>
                   <button className="btn-sm btn-ghost" onClick={() => move(item, 1)} title="Move down">↓</button>
-                  <button className="btn-sm" onClick={() => toggle(item)}
-                          title={item.is_active ? 'Hide from dashboard' : 'Show on dashboard'}>
-                    {item.is_active ? 'Active' : 'Paused'}
-                  </button>
                   <button className="btn-sm btn-ghost" onClick={() => open(item)}>Edit</button>
                 </div>
               </div>
@@ -137,8 +126,8 @@ export default function Reminders() {
 
       {items.length > 0 && (
         <div className="small muted">
-          {active.length} of {items.length} rule{items.length === 1 ? '' : 's'} active.
-          Paused rules stay here but drop off the dashboard.
+          {items.length} rule{items.length === 1 ? '' : 's'}. They cycle in the corner of
+          the Trades page while you work, and all of them sit on your dashboard.
         </div>
       )}
 
