@@ -2,14 +2,9 @@ import { useState } from 'react'
 import { useSignedUrls } from '../lib/hooks'
 import { longDate, relTime } from '../lib/format'
 import { JOURNAL_FIELDS } from './JournalFields'
-import { OutcomeBadge } from './JournalEntryCard'
+import OutcomeBadge, { OUTCOMES } from './OutcomeBadge'
+import Avatar from './Avatar'
 import { Modal, TagChip, Lightbox, Empty } from './ui'
-
-const OUTCOMES = [
-  { value: 'win', label: 'Win' },
-  { value: 'loss', label: 'Loss' },
-  { value: 'breakeven', label: 'Breakeven' },
-]
 
 /** The whole entry in a popup: pictures, every written section, and — if it's
  *  yours — marking it win/loss, flipping visibility, or opening the editor. */
@@ -37,7 +32,7 @@ export default function JournalDetail({
       }
     >
       <div className="row-wrap" style={{ gap: 8 }}>
-        <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
+        <Avatar name={author?.display_name || name} avatar={author?.avatar} />
         <div>
           <div style={{ fontWeight: 650 }}>{name}</div>
           <div className="tiny faint">

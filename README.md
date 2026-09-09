@@ -36,6 +36,7 @@ another user's session physically cannot read a row.
    - [`supabase/003_journal_outcome.sql`](supabase/003_journal_outcome.sql) — win/loss labels on entries
    - [`supabase/004_login_with_display_name.sql`](supabase/004_login_with_display_name.sql) — sign in by display name
    - [`supabase/005_period_goals.sql`](supabase/005_period_goals.sql) — daily / weekly / monthly goals
+   - [`supabase/006_avatars.sql`](supabase/006_avatars.sql) — pick-your-own avatar
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -152,8 +153,13 @@ in the feed you can filter by person or by outcome.
 **Reminders** — your own trading rules ("no more than 2 trades per day"), each with the
 reason behind it. Active rules appear on the dashboard every day.
 
-**Trading floor** — a live list in the sidebar: whoever is signed in appears there and
-drops off when they leave. Runs on Supabase Realtime presence.
+**Trading floor** — a live list in the sidebar. Everyone with an account stays listed:
+online people first with a green dot, everyone else dimmed with when they were last
+around. Runs on Supabase Realtime presence, with a `last_seen_at` heartbeat behind it.
+
+**Avatars** — pick one of fourteen generated looks in Settings. They are gradients
+rendered in the browser, not uploads, so there is nothing to store and they appear
+instantly next to your name everywhere.
 
 ---
 

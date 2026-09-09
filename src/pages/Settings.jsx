@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { useAccounts, useTags, useTitle } from '../lib/hooks'
 import { money } from '../lib/format'
 import { Card, Field, Alert, DeleteButton, TagChip, Empty } from '../components/ui'
+import Avatar from '../components/Avatar'
+import { AVATARS } from '../lib/avatars'
 import { KINDS } from '../components/TagPicker'
 
 export default function Settings() {
@@ -14,6 +16,7 @@ export default function Settings() {
   const { tags, deleteTag, reload: reloadTags } = useTags()
 
   const [name, setName] = useState('')
+  const [avatar, setAvatar] = useState('mono')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -21,7 +24,10 @@ export default function Settings() {
   const [newAccount, setNewAccount] = useState({ name: '', broker: '', starting_balance: '' })
   const [pw, setPw] = useState({ next: '', confirm: '' })
 
-  useEffect(() => { setName(profile?.display_name || '') }, [profile])
+  useEffect(() => {
+    setName(profile?.display_name || '')
+    setAvatar(profile?.avatar || 'mono')
+  }, [profile])
   function flash(m) {
     setMsg(m)
     setErr('')
@@ -33,7 +39,7 @@ export default function Settings() {
     setBusy(true)
     const { data, error } = await supabase
       .from('profiles')
-      .update({ display_name: name.trim() || 'Trader' })
+      .update({ display_name: name.trim() || 'Trader', avatar })
       .eq('id', user.id)
       .select()
       .single()
@@ -89,7 +95,33 @@ export default function Settings() {
       <Alert kind="error">{err}</Alert>
 
       <Card title="Profile">
-        <form className="col" onSubmit={saveProfile} style={{ gap: 12 }}>
+        <form className="col" onSubmit={saveProfile} style={{ gap: 14 }}>
+          <div className="row" style={{ gap: 13 }}>
+            <Avatar name={name} avatar={avatar} size="lg" />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{name || 'Trader'}</div>
+              <div className="small muted">This is how you appear to everyone else.</div>
+            </div>
+          </div>
+
+          <Field label="Pick an avatar">
+            <div className="avpick">
+              {AVATARS.map((a) => (
+                <button
+                  type="button"
+                  key={a.id}
+                  className={avatar === a.id ? 'on' : ''}
+                  onClick={() => setAvatar(a.id)}
+                  title={a.name}
+                  aria-pressed={avatar === a.id}
+                >
+                  <Avatar name={name} avatar={a.id} size="md" />
+                  <span className="nm">{a.name}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
+
           <div className="grid grid-2">
             <Field label="Display name">
               <input value={name} onChange={(e) => setName(e.target.value)} />

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { PresenceBar, SidebarPresence } from './Presence'
+import Avatar from './Avatar'
 
 const LINKS = [
   { to: '/', label: 'Dashboard', ico: '◧', end: true },
@@ -47,7 +48,7 @@ export default function Layout() {
           className="row small"
           style={{ padding: '10px 10px 2px', borderTop: '1px solid var(--line)', marginTop: 8 }}
         >
-          <div className="avatar">{name.slice(0, 1).toUpperCase()}</div>
+          <Avatar name={name} avatar={profile?.avatar} />
           <div className="grow" style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {name}

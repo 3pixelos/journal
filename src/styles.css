@@ -807,3 +807,38 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .floor-empty { font-size: 12px; color: var(--faint); }
+
+/* ===== avatars ====================================================== */
+.avatar {
+  width: 30px; height: 30px; border-radius: 99px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; letter-spacing: -0.01em;
+  background-repeat: repeat, no-repeat;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  user-select: none;
+}
+.avatar.av-xs { width: 17px; height: 17px; font-size: 8.5px; }
+.avatar.av-sm { width: 25px; height: 25px; font-size: 10.5px; }
+.avatar.av-md { width: 30px; height: 30px; font-size: 12px; }
+.avatar.av-lg { width: 52px; height: 52px; font-size: 20px; }
+
+/* ===== avatar picker ================================================ */
+.avpick {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+}
+.avpick button {
+  all: unset; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 9px 4px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; transition: border-color 0.14s, background 0.14s;
+}
+.avpick button:hover { background: var(--panel-2); }
+.avpick button.on { border-color: var(--text); background: var(--panel-2); }
+.avpick .nm { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.avpick button.on .nm { color: var(--text); }
+
+/* floor rows keep everyone, dimming the ones who are away */
+.floor-row.away .avatar { filter: grayscale(0.55); opacity: 0.6; }
+.floor-row.away .floor-name { color: var(--muted); }
+.floor-when { font-size: 10.5px; color: var(--faint); }

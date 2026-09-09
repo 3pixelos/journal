@@ -1,6 +1,7 @@
 import { useSignedUrls } from '../lib/hooks'
 import { tinyDate } from '../lib/format'
-import { OutcomeBadge } from './JournalEntryCard'
+import OutcomeBadge from './OutcomeBadge'
+import Avatar from './Avatar'
 
 /** Picture-first tile for the journal grid. */
 export default function JournalCard({ entry, author, paths = [], isMine, onOpen }) {
@@ -30,6 +31,7 @@ export default function JournalCard({ entry, author, paths = [], isMine, onOpen 
       <div className="jcard-body">
         <div className="jcard-title">{entry.title || 'Journal entry'}</div>
         <div className="jcard-meta">
+          <Avatar name={author?.display_name || name} avatar={author?.avatar} size="xs" />
           <span>{name}</span><span className="faint">·</span>
           <span>{tinyDate(entry.entry_date)}</span>
         </div>
