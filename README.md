@@ -34,6 +34,7 @@ another user's session physically cannot read a row.
 3. Then run the migrations in order, each as its own query:
    - [`supabase/002_reminders_and_presence.sql`](supabase/002_reminders_and_presence.sql) — trading rules + "last active"
    - [`supabase/003_journal_outcome.sql`](supabase/003_journal_outcome.sql) — win/loss labels on entries
+   - [`supabase/004_login_with_display_name.sql`](supabase/004_login_with_display_name.sql) — sign in by display name
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -54,6 +55,21 @@ small group, lock it down after your traders have registered:
 You can still add people manually from **Authentication → Users → Add user**.
 
 ---
+
+### Sessions and sign-in
+
+Sign in with **either an email or a display name**. Supabase Auth only knows about
+emails, so a display name is resolved to one by `email_for_login()` before the password
+is checked. That function is callable anonymously by necessity — it runs before anyone
+is signed in — which means a known display name can be turned into an email address by
+anyone who can reach the app. With signups closed and a couple of users that is a small
+exposure, but it is real; drop migration 004 and use email-only login if you would
+rather not have it. Passwords are never handled by that function: Supabase still does
+the authentication, keeping its own rate limiting.
+
+Sessions are stored in `sessionStorage`, so **closing the browser signs you out**. That
+is deliberate for something holding real P&L. To keep sessions across restarts instead,
+switch `storage` back to `window.localStorage` in `src/lib/supabase.js`.
 
 ## 2. Configure the app
 

@@ -47,7 +47,14 @@ export default function Settings() {
       .select()
       .single()
     setBusy(false)
-    if (error) return setErr(error.message)
+    if (error) {
+      // display names double as login identifiers, so they must be unique
+      return setErr(
+        error.code === '23505'
+          ? 'That display name is already taken — pick another.'
+          : error.message
+      )
+    }
     setProfile(data)
     flash('Profile saved.')
   }
@@ -121,7 +128,8 @@ export default function Settings() {
           </div>
           <div className="small faint">
             Your display name is the only thing other traders see, and only next to entries
-            you choose to share.
+            you choose to share. You can also sign in with it instead of your email, so it
+            has to be unique.
           </div>
           <div><button className="btn-primary" disabled={busy}>Save profile</button></div>
         </form>

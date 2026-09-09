@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, resolveLoginEmail } from '../lib/supabase'
 import { Alert, Field } from '../components/ui'
 import { useTitle } from '../lib/hooks'
 
 export default function Login() {
   const [mode, setMode] = useState('signin') // signin | signup | reset
+  const [identifier, setIdentifier] = useState('')  // email or display name
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -21,7 +22,14 @@ export default function Login() {
     setNotice('')
     try {
       if (mode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const resolved = await resolveLoginEmail(identifier)
+        // An unknown display name gets the same answer as a wrong password,
+        // so this cannot be used to probe which names exist.
+        if (!resolved) throw new Error('Invalid login credentials')
+        const { error } = await supabase.auth.signInWithPassword({
+          email: resolved,
+          password,
+        })
         if (error) throw error
       } else if (mode === 'signup') {
         if (password.length < 8) throw new Error('Password must be at least 8 characters.')
@@ -36,7 +44,9 @@ export default function Login() {
           setMode('signin')
         }
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const resolved = await resolveLoginEmail(identifier)
+        if (!resolved) throw new Error('No account matches that email or display name.')
+        const { error } = await supabase.auth.resetPasswordForEmail(resolved, {
           redirectTo: window.location.origin,
         })
         if (error) throw error
@@ -66,7 +76,7 @@ export default function Login() {
                 ? 'Your trades and P&L stay private to you. Only journal entries are shared.'
                 : mode === 'reset'
                   ? 'We will email you a link to set a new password.'
-                  : 'Welcome back.'}
+                  : 'Sign in with your email or your display name.'}
             </div>
           </div>
 
@@ -84,16 +94,28 @@ export default function Login() {
             </Field>
           )}
 
-          <Field label="Email">
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              placeholder="you@example.com"
-            />
-          </Field>
+          {mode === 'signup' ? (
+            <Field label="Email">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                placeholder="you@example.com"
+              />
+            </Field>
+          ) : (
+            <Field label="Email or display name">
+              <input
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                autoComplete="username"
+                placeholder="adam  ·  or  ·  you@example.com"
+              />
+            </Field>
+          )}
 
           {mode !== 'reset' && (
             <Field label="Password">
