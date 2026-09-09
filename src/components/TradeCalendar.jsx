@@ -13,57 +13,62 @@ function cell(n) {
 }
 
 /**
- * Month grid of daily P&L. Green days are winners, red are losers.
- * `month` is a 'YYYY-MM' string.
+ * Month grid of daily P&L with a running total beside each week.
+ * Green days are winners, red are losers. Saturday and Sunday are greyed
+ * out — markets are shut — but still render a trade if one is logged there.
  */
 export default function TradeCalendar({ trades, month, onSelectDay, selectedDay }) {
   const today = todayStr()
 
-  const days = useMemo(() => {
+  const weeks = useMemo(() => {
     const map = Object.fromEntries(byDay(trades).map((d) => [d.date, d]))
     const [y, m] = month.split('-').map(Number)
     const first = new Date(y, m - 1, 1)
     const lead = (first.getDay() + 6) % 7 // Monday-based offset
     const gridStart = addDays(toDateStr(first), -lead)
 
-    return Array.from({ length: 42 }, (_, i) => {
+    const days = Array.from({ length: 42 }, (_, i) => {
       const date = addDays(gridStart, i)
       const d = map[date]
+      const dow = (parseDateStr(date).getDay() + 6) % 7 // Mon=0 … Sun=6
       return {
         date,
         inMonth: date.slice(0, 7) === month,
+        isWeekend: dow >= 5,
         pnl: d?.pnl ?? 0,
         count: d?.trades ?? 0,
         dayNum: parseDateStr(date).getDate(),
       }
     })
+
+    const rows = []
+    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7))
+    while (rows.length > 4 && rows[rows.length - 1].every((d) => !d.inMonth)) rows.pop()
+    return rows
   }, [trades, month])
 
-  // trim a trailing all-blank week
-  const weeks = useMemo(() => {
-    const out = []
-    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7))
-    while (out.length > 4 && out[out.length - 1].every((d) => !d.inMonth)) out.pop()
-    return out
-  }, [days])
-
   return (
-    <>
+    <div className="cal">
       <div className="cal-head">
-        {DOW.map((d) => <span key={d}>{d}</span>)}
+        {DOW.map((d, i) => (
+          <span key={d} className={i >= 5 ? 'weekend-head' : ''}>{d}</span>
+        ))}
+        <span className="total-head">Week</span>
       </div>
 
-      {weeks.map((week, wi) => {
-        const wkPnl = week.reduce((a, d) => a + (d.inMonth ? d.pnl : 0), 0)
-        const wkTrades = week.reduce((a, d) => a + (d.inMonth ? d.count : 0), 0)
-        return (
-          <div key={wi}>
-            <div className="cal-grid" style={{ marginBottom: 6 }}>
+      <div className="cal-grid">
+        {weeks.map((week, wi) => {
+          const wkPnl = week.reduce((a, d) => a + (d.inMonth ? d.pnl : 0), 0)
+          const wkTrades = week.reduce((a, d) => a + (d.inMonth ? d.count : 0), 0)
+
+          return (
+            <div className="cal-week" key={wi}>
               {week.map((d) => {
                 const has = d.count > 0
                 const klass = [
                   'cal-cell',
                   d.inMonth ? '' : 'muted-day',
+                  d.isWeekend ? 'weekend' : '',
                   has && d.pnl > 0 ? 'win' : '',
                   has && d.pnl < 0 ? 'loss' : '',
                   d.date === today ? 'today' : '',
@@ -74,11 +79,17 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
                     key={d.date}
                     className={klass}
                     onClick={() => onSelectDay(d.date === selectedDay ? null : d.date)}
-                    title={has ? `${d.date} · ${money(d.pnl, { sign: true })} · ${d.count} trades` : d.date}
+                    title={
+                      has
+                        ? `${d.date} · ${money(d.pnl, { sign: true })} · ${d.count} trades`
+                        : d.isWeekend ? `${d.date} · market closed` : d.date
+                    }
                   >
                     <span className="daynum">
                       {d.dayNum}
-                      {d.date === selectedDay && <i className="tag-dot" style={{ background: 'var(--accent)' }} />}
+                      {d.date === selectedDay && (
+                        <i className="tag-dot" style={{ background: 'var(--accent)' }} />
+                      )}
                     </span>
                     {has && (
                       <>
@@ -91,23 +102,23 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
                   </button>
                 )
               })}
-            </div>
-            {wkTrades > 0 && (
-              <div className="cal-weekstrip" style={{ marginBottom: 10 }}>
-                <div className="cal-wk">
-                  <span className="faint">Week {wi + 1}</span>
-                  <span className="muted">{wkTrades} trade{wkTrades === 1 ? '' : 's'}</span>
-                  <div className="spacer" />
-                  <span className={`mono ${wkPnl > 0 ? 'pos' : wkPnl < 0 ? 'neg' : 'flat'}`}
-                        style={{ fontWeight: 650 }}>
-                    {money(wkPnl, { sign: true })}
-                  </span>
-                </div>
+
+              <div className={`cal-total ${wkTrades === 0 ? 'empty' : ''}`}>
+                {wkTrades > 0 ? (
+                  <>
+                    <span className={`cal-pnl ${wkPnl > 0 ? 'pos' : wkPnl < 0 ? 'neg' : 'flat'}`}>
+                      {cell(wkPnl)}
+                    </span>
+                    <span className="cal-meta">{wkTrades} trade{wkTrades === 1 ? '' : 's'}</span>
+                  </>
+                ) : (
+                  <span className="cal-meta faint">—</span>
+                )}
               </div>
-            )}
-          </div>
-        )
-      })}
-    </>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
