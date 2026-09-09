@@ -29,6 +29,35 @@ export function PresenceBar() {
   )
 }
 
+/**
+ * Live sidebar section: a heading, then whoever is currently online. People
+ * appear as they sign in and drop off the list when they leave.
+ */
+export function SidebarPresence() {
+  const { roster } = usePresence()
+  const online = roster.filter((r) => r.isOnline)
+
+  return (
+    <div className="floor">
+      <div className="floor-label">Trading floor</div>
+      {online.length === 0 ? (
+        <div className="floor-empty">Nobody online</div>
+      ) : (
+        online.map((p) => (
+          <div className="floor-row" key={p.id}>
+            <span className="avatar-wrap">
+              <span className="avatar sm">{initial(p.display_name)}</span>
+              <i className="presence-dot online" />
+            </span>
+            <span className="floor-name">{p.display_name}</span>
+            {p.isMe && <span className="tiny faint">you</span>}
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
 /** Full roster card — who is here now, and when the others were last around. */
 export function PresenceCard() {
   const { roster, loading } = usePresence()

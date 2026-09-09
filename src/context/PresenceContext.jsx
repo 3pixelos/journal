@@ -127,7 +127,6 @@ export function pageLabel(path) {
     '/trades': 'Trades',
     '/journal': 'Journal',
     '/reminders': 'Reminders',
-    '/floor': 'Trading floor',
     '/settings': 'Settings',
   }
   return map[path] || null

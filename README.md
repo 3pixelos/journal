@@ -133,7 +133,8 @@ on refresh. Finally, add the production URL to Supabase's Redirect URLs.
 
 **Dashboard** — a day / week / month toggle drives everything on the page. The period's
 P&L is the headline figure, with its goal and loss limit set by clicking them right
-there. Below: the core stats, the current week as calendar tiles, and the equity curve.
+there. Below: the core stats, the current week as calendar tiles, a by-tag breakdown of
+which setups actually make money, and the equity curve.
 
 **Trades** — a **month calendar** of daily P&L, green for winning days and red for
 losing ones, with weekly subtotals and a click-through to any day's trades (or a List
@@ -151,8 +152,8 @@ in the feed you can filter by person or by outcome.
 **Reminders** — your own trading rules ("no more than 2 trades per day"), each with the
 reason behind it. Active rules appear on the dashboard every day.
 
-**Trading floor** — see who else is online right now and which page they're on, or when
-they were last active. Live over Supabase Realtime presence.
+**Trading floor** — a live list in the sidebar: whoever is signed in appears there and
+drops off when they leave. Runs on Supabase Realtime presence.
 
 ---
 
@@ -166,7 +167,7 @@ src/lib/api.js           Tag/attachment syncing and cascade-aware deletes
 src/lib/storage.js       Screenshot upload + signed URLs for the private bucket
 src/context/AuthContext  Session, profile and settings
 src/components/          Reusable UI, trade form, journal form, tag picker, uploader
-src/pages/               Dashboard, Trades, Journal, Reminders, Floor, Settings
+src/pages/               Dashboard, Trades, Journal, Reminders, Settings
 src/context/Presence     Realtime "who's online" + last-seen heartbeat
 ```
 

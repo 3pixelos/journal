@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { PresenceBar } from './Presence'
+import { PresenceBar, SidebarPresence } from './Presence'
 
 const LINKS = [
   { to: '/', label: 'Dashboard', ico: '◧', end: true },
@@ -25,8 +25,7 @@ export default function Layout() {
   const { pathname } = useLocation()
   const name = profile?.display_name || user?.email?.split('@')[0] || 'Trader'
   const title = LINKS.find((l) => l.to === pathname)?.label
-    ?? (pathname === '/settings' ? 'Settings'
-      : pathname === '/floor' ? 'Trading floor' : 'Trading Journal')
+    ?? (pathname === '/settings' ? 'Settings' : 'Trading Journal')
 
   return (
     <div className="shell">
@@ -40,9 +39,7 @@ export default function Layout() {
           </NavLink>
         ))}
         <div className="spacer" />
-        <NavLink to="/floor" className="navlink">
-          <span className="ico">◍</span> Trading floor
-        </NavLink>
+        <SidebarPresence />
         <NavLink to="/settings" className="navlink">
           <span className="ico">⚙</span> Settings
         </NavLink>
@@ -94,10 +91,6 @@ export default function Layout() {
             {l.label}
           </NavLink>
         ))}
-        <NavLink to="/floor" className="navlink">
-          <span className="ico">◍</span>
-          Floor
-        </NavLink>
         <NavLink to="/settings" className="navlink">
           <span className="ico">⚙</span>
           Settings

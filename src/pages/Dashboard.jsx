@@ -5,16 +5,18 @@ import {
 } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { useTitle } from '../lib/hooks'
+import { useTitle, useTags } from '../lib/hooks'
+import { loadTagLinks } from '../lib/api'
 import {
   money, pnlClass, shortDate, tinyDate, todayStr, startOfWeek, endOfWeek,
   startOfMonth, addDays, num, longDate,
 } from '../lib/format'
-import { byDay, stats, equityCurve, dateRange } from '../lib/calc'
+import { byDay, stats, equityCurve, dateRange, groupStats } from '../lib/calc'
 import { Card, Stat, Empty, Loading, Segmented } from '../components/ui'
 import TradeForm from '../components/TradeForm'
 import EditableTarget from '../components/EditableTarget'
 import DayModal from '../components/DayModal'
+import PerfTable from '../components/PerfTable'
 
 const PERIODS = [
   { value: 'day', label: 'Day' },
@@ -38,8 +40,10 @@ function endOfMonth(dateStr) {
 export default function Dashboard() {
   useTitle('Dashboard')
   const { user, profile, settings, setSettings } = useAuth()
+  const { tags } = useTags()
 
   const [trades, setTrades] = useState([])
+  const [tagLinks, setTagLinks] = useState({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [formDate, setFormDate] = useState(null)
@@ -55,7 +59,9 @@ export default function Dashboard() {
       .from('trades').select('*').eq('user_id', user.id)
       .gte('trade_date', addDays(today, -180))
       .order('trade_date', { ascending: false })
-    setTrades(data || [])
+    const rows = data || []
+    setTrades(rows)
+    setTagLinks(await loadTagLinks('trade_tags', 'trade_id', rows.map((t) => t.id)))
     setLoading(false)
   }, [user, today])
 
@@ -104,6 +110,22 @@ export default function Dashboard() {
       }
     })
   }, [trades, today])
+
+  // which setups actually pay, over the selected period
+  const byTag = useMemo(() => {
+    const rows = groupStats(periodTrades, (t) => tagLinks[t.id] || [])
+    return rows
+      .map((r) => {
+        const tag = tags.find((x) => x.id === r.key)
+        return tag ? { ...r, label: tag.name, color: tag.color, kind: tag.kind } : null
+      })
+      .filter(Boolean)
+  }, [periodTrades, tagLinks, tags])
+
+  const untagged = useMemo(
+    () => periodTrades.filter((t) => !(tagLinks[t.id] || []).length).length,
+    [periodTrades, tagLinks]
+  )
 
   const curve = useMemo(() => equityCurve(trades), [trades])
   const name = profile?.display_name || 'trader'
@@ -230,6 +252,23 @@ export default function Dashboard() {
             )
           })}
         </div>
+      </Card>
+
+      <Card
+        title="By tag — what actually works"
+        action={<Link className="small" to="/trades">Filter trades →</Link>}
+      >
+        <PerfTable
+          rows={byTag}
+          emptyTitle="No tagged trades in this period"
+          emptyHint="Tag trades by setup or strategy and this tells you which ones make money."
+        />
+        {byTag.length > 0 && untagged > 0 && (
+          <div className="tiny faint" style={{ marginTop: 10 }}>
+            {untagged} trade{untagged === 1 ? '' : 's'} in this period {untagged === 1 ? 'has' : 'have'} no
+            tag, so {untagged === 1 ? 'it is' : 'they are'} not counted above.
+          </div>
+        )}
       </Card>
 
       <Card title="Equity curve">
