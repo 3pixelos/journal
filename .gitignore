@@ -1,0 +1,9 @@
+node_modules
+dist
+.DS_Store
+*.log
+
+# Local env — never commit. The anon key is publishable but keep it out of git.
+.env
+.env.local
+.env.*.local
