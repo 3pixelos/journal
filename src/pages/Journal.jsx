@@ -6,7 +6,8 @@ import { loadAttachments, loadTagLinks, deleteJournalEntry } from '../lib/api'
 import { removeScreenshot } from '../lib/storage'
 import { Card, Empty, Loading, Segmented, TagChip } from '../components/ui'
 import JournalForm from '../components/JournalForm'
-import JournalEntryCard from '../components/JournalEntryCard'
+import JournalCard from '../components/JournalCard'
+import JournalDetail from '../components/JournalDetail'
 
 export default function Journal() {
   useTitle('Journal')
@@ -22,6 +23,7 @@ export default function Journal() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [detail, setDetail] = useState(null)
   const [q, setQ] = useState('')
   const [tagFilter, setTagFilter] = useState([])
   const [authorFilter, setAuthorFilter] = useState('')   // '' = everyone
@@ -117,6 +119,7 @@ export default function Journal() {
     const patch = { outcome }
     if (isShared !== undefined) patch.is_shared = isShared
     setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, ...patch } : e)))
+    setDetail((d) => (d && d.id === entry.id ? { ...d, ...patch } : d))
     await supabase.from('journal_entries').update(patch).eq('id', entry.id)
     load()
   }
@@ -233,20 +236,33 @@ export default function Journal() {
             }
           />
         ) : (
-          filtered.map((e) => (
-            <JournalEntryCard
-              key={e.id}
-              entry={e}
-              author={authors[e.user_id]}
-              isMine={e.user_id === user.id}
-              tags={(tagLinks[e.id] || []).map((id) => tagsById[id]).filter(Boolean)}
-              paths={attachments[e.id] || []}
-              onEdit={(en) => { setEditing(en); setShowForm(true) }}
-              onMark={handleMark}
-            />
-          ))
+          <div className="gallery">
+            {filtered.map((e) => (
+              <JournalCard
+                key={e.id}
+                entry={e}
+                author={authors[e.user_id]}
+                isMine={e.user_id === user.id}
+                paths={attachments[e.id] || []}
+                onOpen={setDetail}
+              />
+            ))}
+          </div>
         )}
       </Card>
+
+      {detail && (
+        <JournalDetail
+          entry={detail}
+          author={authors[detail.user_id]}
+          isMine={detail.user_id === user.id}
+          tags={(tagLinks[detail.id] || []).map((id) => tagsById[id]).filter(Boolean)}
+          paths={attachments[detail.id] || []}
+          onClose={() => setDetail(null)}
+          onMark={handleMark}
+          onEdit={(en) => { setDetail(null); setEditing(en); setShowForm(true) }}
+        />
+      )}
 
       {showForm && (
         <JournalForm

@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Trades from './pages/Trades'
 import Journal from './pages/Journal'
 import Reminders from './pages/Reminders'
-import Analytics from './pages/Analytics'
+import Floor from './pages/Floor'
 import Settings from './pages/Settings'
 
 export default function App() {
@@ -36,7 +36,7 @@ export default function App() {
         <Route path="/trades" element={<Trades />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/reminders" element={<Reminders />} />
-        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/floor" element={<Floor />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

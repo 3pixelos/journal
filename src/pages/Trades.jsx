@@ -10,6 +10,7 @@ import { Card, Empty, Loading, Field, TagChip, Stat, Segmented } from '../compon
 import TradeForm from '../components/TradeForm'
 import TradeCalendar from '../components/TradeCalendar'
 import ReminderTicker from '../components/ReminderTicker'
+import DayModal from '../components/DayModal'
 
 const monthOf = (d) => d.slice(0, 7)
 const monthLabel = (m) =>
@@ -202,39 +203,6 @@ export default function Trades() {
             )}
           </Card>
 
-          {selectedDay && (
-            <Card
-              title={longDate(selectedDay)}
-              action={
-                <div className="row" style={{ gap: 8 }}>
-                  <button className="btn-sm" onClick={() => openNew(selectedDay)}>＋ Log on this day</button>
-                  <button className="btn-sm btn-ghost" onClick={() => setSelectedDay(null)}>✕</button>
-                </div>
-              }
-            >
-              {dayTrades.length === 0 ? (
-                <Empty icon="○" title="No trades on this day"
-                       action={<button className="btn-primary" onClick={() => openNew(selectedDay)}>＋ Log a trade</button>} />
-              ) : (
-                <>
-                  <div className="row mb">
-                    <span className="muted small">{dayTrades.length} trade{dayTrades.length === 1 ? '' : 's'}</span>
-                    <div className="spacer" />
-                    <span className={`mono ${pnlClass(stats(dayTrades).net)}`} style={{ fontSize: 19, fontWeight: 680 }}>
-                      {money(stats(dayTrades).net, { sign: true })}
-                    </span>
-                  </div>
-                  <TradeTable
-                    trades={dayTrades}
-                    tags={tags}
-                    tagLinks={tagLinks}
-                    accountName={accountName}
-                    onPick={(t) => { setEditing(t); setShowForm(true) }}
-                  />
-                </>
-              )}
-            </Card>
-          )}
         </>
       ) : (
         <Card>
@@ -253,6 +221,16 @@ export default function Trades() {
             />
           )}
         </Card>
+      )}
+
+      {selectedDay && (
+        <DayModal
+          date={selectedDay}
+          trades={dayTrades}
+          onClose={() => setSelectedDay(null)}
+          onPick={(t) => { setSelectedDay(null); setEditing(t); setShowForm(true) }}
+          onLog={() => { const d = selectedDay; setSelectedDay(null); openNew(d) }}
+        />
       )}
 
       <ReminderTicker />

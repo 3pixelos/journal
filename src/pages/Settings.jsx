@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useAccounts, useTags, useTitle } from '../lib/hooks'
 import { money } from '../lib/format'
@@ -8,12 +9,11 @@ import { KINDS } from '../components/TagPicker'
 
 export default function Settings() {
   useTitle('Settings')
-  const { user, profile, settings, setProfile, setSettings, signOut } = useAuth()
+  const { user, profile, setProfile, signOut } = useAuth()
   const { accounts, reload: reloadAccounts } = useAccounts()
   const { tags, deleteTag, reload: reloadTags } = useTags()
 
   const [name, setName] = useState('')
-  const [goals, setGoals] = useState({ weekly_goal: '', weekly_max_loss: '', daily_max_loss: '' })
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -22,15 +22,6 @@ export default function Settings() {
   const [pw, setPw] = useState({ next: '', confirm: '' })
 
   useEffect(() => { setName(profile?.display_name || '') }, [profile])
-  useEffect(() => {
-    if (!settings) return
-    setGoals({
-      weekly_goal: settings.weekly_goal ?? '',
-      weekly_max_loss: settings.weekly_max_loss ?? '',
-      daily_max_loss: settings.daily_max_loss ?? '',
-    })
-  }, [settings])
-
   function flash(m) {
     setMsg(m)
     setErr('')
@@ -57,25 +48,6 @@ export default function Settings() {
     }
     setProfile(data)
     flash('Profile saved.')
-  }
-
-  async function saveGoals(e) {
-    e.preventDefault()
-    setBusy(true)
-    const { data, error } = await supabase
-      .from('settings')
-      .update({
-        weekly_goal: Number(goals.weekly_goal) || 0,
-        weekly_max_loss: Number(goals.weekly_max_loss) || 0,
-        daily_max_loss: Number(goals.daily_max_loss) || 0,
-      })
-      .eq('user_id', user.id)
-      .select()
-      .single()
-    setBusy(false)
-    if (error) return setErr(error.message)
-    setSettings(data)
-    flash('Targets saved.')
   }
 
   async function addAccount(e) {
@@ -136,26 +108,11 @@ export default function Settings() {
       </Card>
 
       <Card title="Targets & risk limits">
-        <form className="col" onSubmit={saveGoals} style={{ gap: 12 }}>
-          <div className="grid grid-3">
-            <Field label="Weekly P&L goal">
-              <input type="number" step="any" value={goals.weekly_goal}
-                     onChange={(e) => setGoals({ ...goals, weekly_goal: e.target.value })} />
-            </Field>
-            <Field label="Weekly max loss">
-              <input type="number" step="any" value={goals.weekly_max_loss}
-                     onChange={(e) => setGoals({ ...goals, weekly_max_loss: e.target.value })} />
-            </Field>
-            <Field label="Daily max loss">
-              <input type="number" step="any" value={goals.daily_max_loss}
-                     onChange={(e) => setGoals({ ...goals, daily_max_loss: e.target.value })} />
-            </Field>
-          </div>
-          <div className="small faint">
-            Enter loss limits as positive numbers. The dashboard warns you when you reach them.
-          </div>
-          <div><button className="btn-primary" disabled={busy}>Save targets</button></div>
-        </form>
+        <div className="small muted">
+          Your daily, weekly and monthly goals — and their loss limits — are set on the{' '}
+          <Link to="/">dashboard</Link>, right where you read them. Switch the period and
+          click any figure to change it.
+        </div>
       </Card>
 
       <Card title="Trading accounts">

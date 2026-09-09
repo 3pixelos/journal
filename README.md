@@ -35,6 +35,7 @@ another user's session physically cannot read a row.
    - [`supabase/002_reminders_and_presence.sql`](supabase/002_reminders_and_presence.sql) — trading rules + "last active"
    - [`supabase/003_journal_outcome.sql`](supabase/003_journal_outcome.sql) — win/loss labels on entries
    - [`supabase/004_login_with_display_name.sql`](supabase/004_login_with_display_name.sql) — sign in by display name
+   - [`supabase/005_period_goals.sql`](supabase/005_period_goals.sql) — daily / weekly / monthly goals
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -130,9 +131,9 @@ on refresh. Finally, add the production URL to Supabase's Redirect URLs.
 
 ## What's in it
 
-**Dashboard** — today and this week at a glance, progress against your weekly goal,
-weekly and daily max-loss meters that warn you when you hit them, P&L by day for the
-current week, equity curve, recent trades.
+**Dashboard** — a day / week / month toggle drives everything on the page. The period's
+P&L is the headline figure, with its goal and loss limit set by clicking them right
+there. Below: the core stats, the current week as calendar tiles, and the equity curve.
 
 **Trades** — a **month calendar** of daily P&L, green for winning days and red for
 losing ones, with weekly subtotals and a click-through to any day's trades (or a List
@@ -153,10 +154,6 @@ reason behind it. Active rules appear on the dashboard every day.
 **Trading floor** — see who else is online right now and which page they're on, or when
 they were last active. Live over Supabase Realtime presence.
 
-**Analytics** — win rate, average win vs. average loss, profit factor, payoff ratio,
-expectancy, max drawdown, equity curve, P&L by day/week/month, best and worst days,
-performance by symbol, weekday, direction and tag.
-
 ---
 
 ## Project layout
@@ -169,7 +166,7 @@ src/lib/api.js           Tag/attachment syncing and cascade-aware deletes
 src/lib/storage.js       Screenshot upload + signed URLs for the private bucket
 src/context/AuthContext  Session, profile and settings
 src/components/          Reusable UI, trade form, journal form, tag picker, uploader
-src/pages/               Dashboard, Trades, Journal, Reminders, Analytics, Settings
+src/pages/               Dashboard, Trades, Journal, Reminders, Floor, Settings
 src/context/Presence     Realtime "who's online" + last-seen heartbeat
 ```
 

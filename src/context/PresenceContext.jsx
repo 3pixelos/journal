@@ -119,7 +119,7 @@ export function PresenceProvider({ children }) {
 
 export const usePresence = () => useContext(PresenceCtx)
 
-/** Human label for a page path, used in "Adam · on Analytics". */
+/** Human label for a page path, used in "Adam · on Trades". */
 export function pageLabel(path) {
   if (!path) return null
   const map = {
@@ -127,7 +127,7 @@ export function pageLabel(path) {
     '/trades': 'Trades',
     '/journal': 'Journal',
     '/reminders': 'Reminders',
-    '/analytics': 'Analytics',
+    '/floor': 'Trading floor',
     '/settings': 'Settings',
   }
   return map[path] || null

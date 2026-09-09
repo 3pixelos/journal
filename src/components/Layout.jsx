@@ -8,7 +8,6 @@ const LINKS = [
   { to: '/trades', label: 'Trades', ico: '▤' },
   { to: '/journal', label: 'Journal', ico: '✎' },
   { to: '/reminders', label: 'Reminders', ico: '◆' },
-  { to: '/analytics', label: 'Analytics', ico: '◫' },
 ]
 
 function applyTheme(next) {
@@ -26,7 +25,8 @@ export default function Layout() {
   const { pathname } = useLocation()
   const name = profile?.display_name || user?.email?.split('@')[0] || 'Trader'
   const title = LINKS.find((l) => l.to === pathname)?.label
-    ?? (pathname === '/settings' ? 'Settings' : 'Trading Journal')
+    ?? (pathname === '/settings' ? 'Settings'
+      : pathname === '/floor' ? 'Trading floor' : 'Trading Journal')
 
   return (
     <div className="shell">
@@ -40,6 +40,9 @@ export default function Layout() {
           </NavLink>
         ))}
         <div className="spacer" />
+        <NavLink to="/floor" className="navlink">
+          <span className="ico">◍</span> Trading floor
+        </NavLink>
         <NavLink to="/settings" className="navlink">
           <span className="ico">⚙</span> Settings
         </NavLink>
@@ -91,6 +94,10 @@ export default function Layout() {
             {l.label}
           </NavLink>
         ))}
+        <NavLink to="/floor" className="navlink">
+          <span className="ico">◍</span>
+          Floor
+        </NavLink>
         <NavLink to="/settings" className="navlink">
           <span className="ico">⚙</span>
           Settings

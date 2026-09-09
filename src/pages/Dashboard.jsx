@@ -1,88 +1,86 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, CartesianGrid,
-  AreaChart, Area,
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useTitle } from '../lib/hooks'
 import {
-  money, pnlClass, shortDate, tinyDate, todayStr, startOfWeek, endOfWeek, addDays, num,
+  money, pnlClass, shortDate, tinyDate, todayStr, startOfWeek, endOfWeek,
+  startOfMonth, addDays, num, longDate,
 } from '../lib/format'
 import { byDay, stats, equityCurve, dateRange } from '../lib/calc'
-import { Card, Stat, Empty, Loading } from '../components/ui'
+import { Card, Stat, Empty, Loading, Segmented } from '../components/ui'
 import TradeForm from '../components/TradeForm'
 import EditableTarget from '../components/EditableTarget'
-import { PresenceCard } from '../components/Presence'
+import DayModal from '../components/DayModal'
+
+const PERIODS = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+]
+
+/** Goal + loss-limit column names per period, so one control set drives all three. */
+const FIELDS = {
+  day: { goal: 'daily_goal', loss: 'daily_max_loss', noun: 'today' },
+  week: { goal: 'weekly_goal', loss: 'weekly_max_loss', noun: 'this week' },
+  month: { goal: 'monthly_goal', loss: 'monthly_max_loss', noun: 'this month' },
+}
+
+function endOfMonth(dateStr) {
+  const [y, m] = dateStr.split('-').map(Number)
+  const d = new Date(y, m, 0)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 export default function Dashboard() {
   useTitle('Dashboard')
   const { user, profile, settings, setSettings } = useAuth()
 
   const [trades, setTrades] = useState([])
-  const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [formDate, setFormDate] = useState(null)
+  const [period, setPeriod] = useState('week')
+  const [openDay, setOpenDay] = useState(null)
 
   const today = todayStr()
-  const weekStart = startOfWeek(today)
-  const weekEnd = endOfWeek(today)
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const since = addDays(today, -120)
-
-    const [{ data: t }, { data: r }] = await Promise.all([
-      supabase.from('trades').select('*').eq('user_id', user.id).gte('trade_date', since),
-      supabase.from('reminders').select('*').eq('user_id', user.id)
-        .order('sort_order').order('created_at'),
-    ])
-
-    setTrades(t || [])
-    setRules(r || [])
+    const { data } = await supabase
+      .from('trades').select('*').eq('user_id', user.id)
+      .gte('trade_date', addDays(today, -180))
+      .order('trade_date', { ascending: false })
+    setTrades(data || [])
     setLoading(false)
   }, [user, today])
 
   useEffect(() => { load() }, [load])
 
-  const weekTrades = useMemo(
-    () => trades.filter((t) => t.trade_date >= weekStart && t.trade_date <= weekEnd),
-    [trades, weekStart, weekEnd]
+  // ---- the window the selected period covers --------------------------
+  const range = useMemo(() => {
+    if (period === 'day') return { from: today, to: today }
+    if (period === 'month') return { from: startOfMonth(today), to: endOfMonth(today) }
+    return { from: startOfWeek(today), to: endOfWeek(today) }
+  }, [period, today])
+
+  const periodTrades = useMemo(
+    () => trades.filter((t) => t.trade_date >= range.from && t.trade_date <= range.to),
+    [trades, range]
   )
-  const todayTrades = useMemo(() => trades.filter((t) => t.trade_date === today), [trades, today])
 
-  const weekStats = stats(weekTrades)
-  const todayStats = stats(todayTrades)
-  const allStats = stats(trades)
+  const s = stats(periodTrades)
+  const f = FIELDS[period]
+  const goal = Number(settings?.[f.goal] ?? 0)
+  const maxLoss = Number(settings?.[f.loss] ?? 0)
 
-  const goal = Number(settings?.weekly_goal ?? 0)
-  const weeklyMaxLoss = Number(settings?.weekly_max_loss ?? 0)
-  const dailyMaxLoss = Number(settings?.daily_max_loss ?? 0)
-
-  const goalPct = goal > 0 ? Math.min(Math.max(weekStats.net / goal, 0), 1) : 0
-  const lossPct = weeklyMaxLoss > 0 ? Math.min(Math.max(-weekStats.net / weeklyMaxLoss, 0), 1) : 0
-  const dailyLossPct = dailyMaxLoss > 0 ? Math.min(Math.max(-todayStats.net / dailyMaxLoss, 0), 1) : 0
-
-  // Mon..Sun bars for the current week, zero-filled
-  const weekDayRows = useMemo(() => {
-    const map = Object.fromEntries(byDay(weekTrades).map((d) => [d.date, d]))
-    return dateRange(weekStart, weekEnd).map((date) => ({
-      date,
-      label: shortDate(date).split(' ')[0],
-      pnl: map[date]?.pnl ?? 0,
-      trades: map[date]?.trades ?? 0,
-    }))
-  }, [weekTrades, weekStart, weekEnd])
-
-  const curve = useMemo(() => equityCurve(trades), [trades])
-  const recent = useMemo(
-    () => [...trades].sort((a, b) =>
-      b.trade_date.localeCompare(a.trade_date) || String(b.created_at).localeCompare(String(a.created_at))
-    ).slice(0, 8),
-    [trades]
-  )
+  const goalPct = goal > 0 ? Math.min(Math.max(s.net / goal, 0), 1) : 0
+  const lossPct = maxLoss > 0 ? Math.min(Math.max(-s.net / maxLoss, 0), 1) : 0
+  const behind = s.net < 0
 
   async function saveTarget(field, value) {
     const { data } = await supabase
@@ -90,192 +88,198 @@ export default function Dashboard() {
     if (data) setSettings(data)
   }
 
-  const name = profile?.display_name || 'trader'
-  const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
+  // ---- current week, calendar-styled --------------------------------
+  const weekRows = useMemo(() => {
+    const map = Object.fromEntries(byDay(trades).map((d) => [d.date, d]))
+    return dateRange(startOfWeek(today), endOfWeek(today)).map((date) => {
+      const d = new Date(date)
+      const dow = (new Date(date + 'T00:00:00').getDay() + 6) % 7
+      return {
+        date,
+        dayNum: Number(date.slice(8)),
+        label: shortDate(date).split(' ')[0],
+        isWeekend: dow >= 5,
+        pnl: map[date]?.pnl ?? 0,
+        count: map[date]?.trades ?? 0,
+      }
+    })
+  }, [trades, today])
 
-  if (loading) return <Card><Loading rows={5} /></Card>
+  const curve = useMemo(() => equityCurve(trades), [trades])
+  const name = profile?.display_name || 'trader'
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
+  if (loading) return <Card><Loading rows={6} /></Card>
 
   return (
     <div className="col" style={{ gap: 16 }}>
       <div className="row-wrap">
         <div>
           <h2>{greeting}, {name}</h2>
-          <div className="small muted">{shortDate(today)} · week of {tinyDate(weekStart)}</div>
+          <div className="small muted">{longDate(today)}</div>
         </div>
         <div className="spacer" />
-        <button className="btn-primary" onClick={() => setShowForm(true)}>＋ Log trade</button>
+        <Segmented value={period} onChange={setPeriod} options={PERIODS} />
+        <button className="btn-go" onClick={() => { setFormDate(null); setShowForm(true) }}>
+          ＋ Log trade
+        </button>
+      </div>
+
+      {/* ---- the number that matters, big ---- */}
+      <div className={`hero ${behind ? 'behind' : ''}`}>
+        <div className="row">
+          <div>
+            <div className="hero-label">
+              {period === 'day' ? 'Today' : period === 'week' ? 'This week' : 'This month'}
+            </div>
+            <div className={`hero-value ${pnlClass(s.net)}`}>{money(s.net, { sign: true })}</div>
+            <div className="hero-sub">
+              {s.count} trade{s.count === 1 ? '' : 's'} · {(s.winRate * 100).toFixed(0)}% win rate
+              {period !== 'day' && ` · ${tinyDate(range.from)} – ${tinyDate(range.to)}`}
+            </div>
+          </div>
+          <div className="spacer" />
+          <div className="right">
+            <div className="hero-label">Goal {f.noun}</div>
+            <div style={{ fontSize: 21, fontWeight: 760, letterSpacing: '-0.03em' }}>
+              <EditableTarget value={goal} label={`${period} goal`}
+                              onSave={(v) => saveTarget(f.goal, v)} />
+            </div>
+            <div className="tiny faint">click to customize</div>
+          </div>
+        </div>
+
+        <div className={`hero-bar ${behind ? 'neg' : ''}`}>
+          <span style={{ width: `${(behind ? lossPct : goalPct) * 100}%` }} />
+        </div>
+        <div className="row tiny faint" style={{ marginTop: 7 }}>
+          <span>
+            {behind
+              ? `${(lossPct * 100).toFixed(0)}% of your max loss used`
+              : `${(goalPct * 100).toFixed(0)}% of goal`}
+          </span>
+          <div className="spacer" />
+          <span>
+            {behind
+              ? `${money(Math.max(maxLoss + s.net, 0))} of room left`
+              : `${money(Math.max(goal - s.net, 0))} to go`}
+          </span>
+        </div>
+
+        <div className="hero-grid">
+          <div className="hero-tile">
+            <div className="k">Max loss {f.noun}</div>
+            <div className={`v ${lossPct >= 1 ? 'neg' : ''}`}>
+              <EditableTarget value={maxLoss} label={`${period} max loss`}
+                              onSave={(v) => saveTarget(f.loss, v)} />
+            </div>
+          </div>
+          <div className="hero-tile">
+            <div className="k">Avg win / loss</div>
+            <div className="v">{money(s.avgWin)} / {money(-s.avgLoss)}</div>
+          </div>
+        </div>
+
+        {lossPct >= 1 && (
+          <div className="alert error" style={{ marginTop: 12 }}>
+            You've hit your {period === 'day' ? 'daily' : period === 'week' ? 'weekly' : 'monthly'}{' '}
+            loss limit. Stop trading.
+          </div>
+        )}
       </div>
 
       <div className="grid grid-4">
-        <Stat label="Today" value={money(todayStats.net, { sign: true })} tone={pnlClass(todayStats.net)}
-              sub={`${todayStats.count} trade${todayStats.count === 1 ? '' : 's'}`} />
-        <Stat label="This week" value={money(weekStats.net, { sign: true })} tone={pnlClass(weekStats.net)}
-              sub={`${weekStats.count} trades · ${(weekStats.winRate * 100).toFixed(0)}% win`} />
-        <Stat label="Win rate (week)"
-              value={`${(weekStats.winRate * 100).toFixed(0)}%`}
-              sub={`${weekStats.wins}W · ${weekStats.losses}L`} />
-        <Stat label="Profit factor (120d)"
-              value={allStats.profitFactor === Infinity ? '∞' : num(allStats.profitFactor)}
-              sub={`expectancy ${money(allStats.expectancy, { sign: true })}/trade`} />
+        <Stat label="Net P&L" value={money(s.net, { sign: true })} tone={pnlClass(s.net)}
+              sub={`${s.count} trades`} />
+        <Stat label="Win rate" value={`${(s.winRate * 100).toFixed(0)}%`}
+              sub={`${s.wins}W · ${s.losses}L`} />
+        <Stat label="Profit factor"
+              value={s.profitFactor === Infinity ? '∞' : num(s.profitFactor)}
+              sub={`${money(s.grossWin)} won / ${money(s.grossLoss)} lost`} />
+        <Stat label="Expectancy" value={money(s.expectancy, { sign: true })}
+              tone={pnlClass(s.expectancy)} sub="per trade" />
       </div>
 
-      <div className="grid grid-2">
-        <Card title="Weekly goal">
-          <div className="row" style={{ marginBottom: 6 }}>
-            <span className={`mono ${pnlClass(weekStats.net)}`} style={{ fontSize: 26, fontWeight: 680 }}>
-              {money(weekStats.net, { sign: true })}
-            </span>
-            <span className="muted small">
-              of <EditableTarget value={goal} label="weekly goal"
-                                 onSave={(v) => saveTarget('weekly_goal', v)} /> goal
-            </span>
-          </div>
-          <div className="bar pos"><span style={{ width: `${goalPct * 100}%` }} /></div>
-          <div className="row tiny faint" style={{ marginTop: 5 }}>
-            <span>{(goalPct * 100).toFixed(0)}% of goal</span>
-            <div className="spacer" />
-            <span>{money(Math.max(goal - weekStats.net, 0))} to go</span>
-          </div>
-          <div className="tiny faint" style={{ marginTop: 8 }}>
-            Click any target to change it.
-          </div>
+      <Card
+        title="This week"
+        action={<Link className="small" to="/trades">Full calendar →</Link>}
+      >
+        <div className="weekstrip">
+          {weekRows.map((d) => {
+            const has = d.count > 0
+            const klass = [
+              'cal-cell',
+              d.isWeekend ? 'weekend' : '',
+              has && d.pnl > 0 ? 'win' : '',
+              has && d.pnl < 0 ? 'loss' : '',
+              d.date === today ? 'today' : '',
+            ].filter(Boolean).join(' ')
+            return (
+              <button key={d.date} className={klass} onClick={() => setOpenDay(d.date)}>
+                <span className="daynum">{d.label} {d.dayNum}</span>
+                {has && (
+                  <>
+                    <span className={`cal-pnl ${d.pnl > 0 ? 'pos' : 'neg'}`}>
+                      {money(d.pnl, { sign: true, decimals: 0 })}
+                    </span>
+                    <span className="cal-meta">{d.count} trade{d.count === 1 ? '' : 's'}</span>
+                  </>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </Card>
 
-          <div className="mt">
-            <div className="row tiny" style={{ marginBottom: 5 }}>
-              <span className="faint">Weekly max loss</span>
-              <div className="spacer" />
-              <span className={lossPct >= 1 ? 'neg' : 'muted'}>
-                {money(Math.max(-weekStats.net, 0))} /{' '}
-                <EditableTarget value={weeklyMaxLoss} label="weekly max loss"
-                                onSave={(v) => saveTarget('weekly_max_loss', v)} />
-              </span>
-            </div>
-            <div className="bar neg"><span style={{ width: `${lossPct * 100}%` }} /></div>
-          </div>
-
-          <div className="mt">
-            <div className="row tiny" style={{ marginBottom: 5 }}>
-              <span className="faint">Daily max loss</span>
-              <div className="spacer" />
-              <span className={dailyLossPct >= 1 ? 'neg' : 'muted'}>
-                {money(Math.max(-todayStats.net, 0))} /{' '}
-                <EditableTarget value={dailyMaxLoss} label="daily max loss"
-                                onSave={(v) => saveTarget('daily_max_loss', v)} />
-              </span>
-            </div>
-            <div className="bar neg"><span style={{ width: `${dailyLossPct * 100}%` }} /></div>
-            {dailyLossPct >= 1 && (
-              <div className="alert error" style={{ marginTop: 10 }}>
-                Daily loss limit hit. Stop trading for today.
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Card title="This week, by day">
-          <div style={{ height: 208 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weekDayRows} margin={{ top: 6, right: 4, left: -18, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} width={54}
-                       tickFormatter={(v) => (v === 0 ? '0' : `${v > 0 ? '' : '-'}$${Math.abs(v) >= 1000 ? `${Math.abs(v) / 1000}k` : Math.abs(v)}`)} />
-                <Tooltip
-                  cursor={{ fill: 'var(--panel-2)' }}
-                  contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 8 }}
-                  formatter={(v, _n, p) => [money(v, { sign: true }), `${p.payload.trades} trades`]}
-                  labelFormatter={(l, p) => (p?.[0] ? shortDate(p[0].payload.date) : l)}
-                />
-                <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
-                  {weekDayRows.map((d) => (
-                    <Cell key={d.date} fill={d.pnl >= 0 ? 'var(--pos)' : 'var(--neg)'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-2">
-        <Card title="Today's rules" action={<Link className="small" to="/reminders">Edit →</Link>}>
-          {rules.length === 0 ? (
-            <Empty icon="◆" title="No rules set"
-                   hint="Add the rules you want in front of you before every session."
-                   action={<Link className="btn btn-primary" to="/reminders">＋ Add rules</Link>} />
-          ) : (
-            <div className="rules-strip">
-              {rules.map((r, i) => (
-                <div className="rule-pill" key={r.id}>
-                  <span className="rnum">{i + 1}</span>
-                  <span className="grow">{r.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <PresenceCard />
-      </div>
-
-      <Card title="Equity curve" action={<Link className="small" to="/analytics">Full analytics →</Link>}>
+      <Card title="Equity curve">
         {curve.length < 2 ? (
-          <Empty icon="◫" title="Not enough data yet" hint="Log a few trades and the curve will appear here." />
+          <Empty icon="◫" title="Not enough data yet"
+                 hint="Log a few trades and the curve will appear here." />
         ) : (
-          <div style={{ height: 220 }}>
+          <div style={{ height: 230 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={curve} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
+              <AreaChart data={curve} margin={{ top: 6, right: 6, left: -14, bottom: 0 }}>
                 <defs>
                   <linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--text)" stopOpacity={0.22} />
-                    <stop offset="100%" stopColor="var(--text)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--pos)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="var(--pos)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-                <XAxis dataKey="date" tickFormatter={tinyDate} tickLine={false} axisLine={false} minTickGap={28} />
-                <YAxis tickLine={false} axisLine={false} width={54}
+                <XAxis dataKey="date" tickFormatter={tinyDate} tickLine={false}
+                       axisLine={false} minTickGap={28} />
+                <YAxis tickLine={false} axisLine={false} width={58}
                        tickFormatter={(v) => `$${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`} />
                 <Tooltip
-                  contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 8 }}
-                  formatter={(v) => [money(v), 'Equity']}
-                  labelFormatter={shortDate}
+                  contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 9 }}
+                  formatter={(v) => [money(v), 'Equity']} labelFormatter={shortDate}
                 />
-                <Area type="monotone" dataKey="equity" stroke="var(--text)" strokeWidth={2} fill="url(#eq)" />
+                <Area type="monotone" dataKey="equity" stroke="var(--pos)" strokeWidth={2.4}
+                      fill="url(#eq)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
       </Card>
 
-      <Card title="Recent trades" action={<Link className="small" to="/trades">All trades →</Link>}>
-        {recent.length === 0 ? (
-          <Empty icon="▤" title="No trades logged yet"
-                 action={<button className="btn-primary" onClick={() => setShowForm(true)}>＋ Log your first trade</button>} />
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th>Date</th><th>Symbol</th><th>Dir</th><th className="right">Qty</th><th className="right">P&L</th></tr>
-              </thead>
-              <tbody>
-                {recent.map((t) => (
-                  <tr key={t.id}>
-                    <td className="muted small nowrap">{shortDate(t.trade_date)}</td>
-                    <td style={{ fontWeight: 600 }}>{t.symbol}</td>
-                    <td><span className={`chip dir-${t.direction}`}>{t.direction === 'long' ? '↑' : '↓'}</span></td>
-                    <td className="right mono small">{num(t.quantity, 0)}</td>
-                    <td className={`right mono ${pnlClass(t.pnl)}`} style={{ fontWeight: 600 }}>
-                      {money(t.pnl, { sign: true })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      {openDay && (
+        <DayModal
+          date={openDay}
+          trades={trades.filter((t) => t.trade_date === openDay)}
+          onClose={() => setOpenDay(null)}
+          onPick={(t) => { setOpenDay(null); setFormDate(t); setShowForm(true) }}
+          onLog={() => { setFormDate({ trade_date: openDay }); setOpenDay(null); setShowForm(true) }}
+        />
+      )}
 
-      {showForm && <TradeForm onClose={() => setShowForm(false)} onSaved={load} />}
+      {showForm && (
+        <TradeForm
+          trade={formDate}
+          onClose={() => { setShowForm(false); setFormDate(null) }}
+          onSaved={load}
+        />
+      )}
     </div>
   )
 }
