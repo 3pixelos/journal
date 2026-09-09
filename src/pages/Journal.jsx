@@ -24,6 +24,8 @@ export default function Journal() {
   const [editing, setEditing] = useState(null)
   const [q, setQ] = useState('')
   const [tagFilter, setTagFilter] = useState([])
+  const [authorFilter, setAuthorFilter] = useState('')   // '' = everyone
+  const [outcomeFilter, setOutcomeFilter] = useState('')
 
   const load = useCallback(async () => {
     if (!user) return
@@ -86,12 +88,38 @@ export default function Journal() {
         const has = tagLinks[e.id] || []
         if (!tagFilter.every((id) => has.includes(id))) return false
       }
+      if (authorFilter && e.user_id !== authorFilter) return false
+      if (outcomeFilter && e.outcome !== outcomeFilter) return false
       if (!needle) return true
       const hay = [e.title, e.setup, e.reasoning, e.emotions, e.mistakes, e.improvements]
         .filter(Boolean).join(' ').toLowerCase()
       return hay.includes(needle)
     })
-  }, [entries, q, tagFilter, tagLinks])
+  }, [entries, q, tagFilter, tagLinks, authorFilter, outcomeFilter])
+
+  // Who has written in the feed, for the by-person filter
+  const people = useMemo(() => {
+    const counts = new Map()
+    for (const e of entries) {
+      counts.set(e.user_id, (counts.get(e.user_id) || 0) + 1)
+    }
+    return [...counts.entries()]
+      .map(([id, count]) => ({
+        id,
+        count,
+        name: authors[id]?.display_name || 'Trader',
+        isMe: id === user.id,
+      }))
+      .sort((a, b) => Number(b.isMe) - Number(a.isMe) || b.count - a.count)
+  }, [entries, authors, user])
+
+  async function handleMark(entry, outcome, isShared) {
+    const patch = { outcome }
+    if (isShared !== undefined) patch.is_shared = isShared
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, ...patch } : e)))
+    await supabase.from('journal_entries').update(patch).eq('id', entry.id)
+    load()
+  }
 
   async function handleDelete(entry) {
     const orphans = await deleteJournalEntry(entry.id)
@@ -106,7 +134,7 @@ export default function Journal() {
       <div className="row-wrap">
         <Segmented
           value={tab}
-          onChange={setTab}
+          onChange={(v) => { setTab(v); setAuthorFilter('') }}
           options={[
             { value: 'mine', label: 'My journal' },
             { value: 'team', label: 'Team feed' },
@@ -132,9 +160,39 @@ export default function Journal() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search entries…"
-            style={{ minWidth: 200 }}
+            style={{ minWidth: 180 }}
+          />
+          <Segmented
+            value={outcomeFilter}
+            onChange={(v) => setOutcomeFilter(outcomeFilter === v ? '' : v)}
+            options={[
+              { value: '', label: 'All' },
+              { value: 'win', label: 'Wins' },
+              { value: 'loss', label: 'Losses' },
+            ]}
           />
         </div>
+
+        {tab === 'team' && people.length > 1 && (
+          <div className="row-wrap mt" style={{ gap: 6 }}>
+            <span className="tiny faint">Whose journal:</span>
+            <span
+              className={`chip chip-btn ${authorFilter === '' ? 'on' : ''}`}
+              onClick={() => setAuthorFilter('')}
+            >
+              Everyone
+            </span>
+            {people.map((p) => (
+              <span
+                key={p.id}
+                className={`chip chip-btn ${authorFilter === p.id ? 'on' : ''}`}
+                onClick={() => setAuthorFilter(authorFilter === p.id ? '' : p.id)}
+              >
+                {p.isMe ? 'Me' : p.name} · {p.count}
+              </span>
+            ))}
+          </div>
+        )}
         {allTags.length > 0 && (
           <div className="row-wrap mt" style={{ gap: 6 }}>
             {allTags.map((t) => (
@@ -184,6 +242,7 @@ export default function Journal() {
               tags={(tagLinks[e.id] || []).map((id) => tagsById[id]).filter(Boolean)}
               paths={attachments[e.id] || []}
               onEdit={(en) => { setEditing(en); setShowForm(true) }}
+              onMark={handleMark}
             />
           ))
         )}

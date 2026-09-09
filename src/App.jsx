@@ -5,7 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Trades from './pages/Trades'
 import Journal from './pages/Journal'
-import Checklist from './pages/Checklist'
+import Reminders from './pages/Reminders'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 
@@ -35,7 +35,7 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/trades" element={<Trades />} />
         <Route path="/journal" element={<Journal />} />
-        <Route path="/checklist" element={<Checklist />} />
+        <Route path="/reminders" element={<Reminders />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

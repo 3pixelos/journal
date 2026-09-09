@@ -14,8 +14,8 @@ their own login and their own P&L**. The journal is the one shared surface.
 | Data | Who can see it |
 |---|---|
 | Trades, prices, P&L, accounts, goals, risk limits | **Only you.** Enforced by RLS (`user_id = auth.uid()`). |
-| Daily checklist and its history | **Only you.** |
-| Journal entries marked *shared* | Everyone signed in — text, tags and screenshots only. |
+| Trading rules / reminders | **Only you.** |
+| Journal entries marked *public* | Everyone signed in — text, tags, screenshots and the win/loss label. Never the amounts. |
 | Journal entries marked *private* | Only you. |
 | Display name | Everyone signed in (it is the byline on shared entries). |
 
@@ -31,16 +31,19 @@ another user's session physically cannot read a row.
 
 1. Open your project → **SQL Editor** → **New query**.
 2. Paste the whole of [`supabase/schema.sql`](supabase/schema.sql) and run it.
+3. Then run the migrations in order, each as its own query:
+   - [`supabase/002_reminders_and_presence.sql`](supabase/002_reminders_and_presence.sql) — trading rules + "last active"
+   - [`supabase/003_journal_outcome.sql`](supabase/003_journal_outcome.sql) — win/loss labels on entries
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
 signup a profile, default risk settings and a starter pre-market checklist. It is
 idempotent — safe to re-run after edits.
 
-3. **Authentication → Providers → Email**: leave email/password enabled. Disable
+4. **Authentication → Providers → Email**: leave email/password enabled. Disable
    "Confirm email" if you want signups to be usable immediately without a confirmation
    click.
-4. **Authentication → URL Configuration**: add your deployed URL (and
+5. **Authentication → URL Configuration**: add your deployed URL (and
    `http://localhost:5173`) to *Redirect URLs* so password resets come back to the app.
 
 ### Who can sign up
@@ -115,24 +118,28 @@ on refresh. Finally, add the production URL to Supabase's Redirect URLs.
 weekly and daily max-loss meters that warn you when you hit them, P&L by day for the
 current week, equity curve, recent trades.
 
-**Trades** — log symbol, direction, entry/exit, size, contract multiplier, fees, account
-and date. P&L auto-calculates from the prices (with one-tap multiplier presets for MNQ,
+**Trades** — a **month calendar** of daily P&L, green for winning days and red for
+losing ones, with weekly subtotals and a click-through to any day's trades (or a List
+view if you prefer the table). Log symbol, direction, entry/exit, size, contract
+multiplier, fees, account and date. P&L auto-calculates from the prices (with one-tap multiplier presets for MNQ,
 NQ, MES, ES, GC) and stays editable for partial fills or broker-reported totals. Filter
 by range, symbol, direction, account and tags.
 
 **Journal** — a per-trade or standalone entry covering setup, reasoning, emotional
-state, mistakes and what you'd do differently, plus tags and chart screenshots. Two
-views: *My journal* (everything you wrote) and *Team feed* (everyone's shared entries).
-Each entry has a share toggle.
+state, mistakes and what you'd do differently, plus tags and chart screenshots. Every
+entry has a **Public / Private** toggle and an optional **win / loss / breakeven** label
+you can set later, straight from the feed. Two views: *My journal* and *Team feed*, and
+in the feed you can filter by person or by outcome.
 
-**Checklist** — an editable pre-market checklist, ticked off per day, with current and
-best streaks, a 30-day completion rate and a 12-week heatmap. Back-date a day you forgot
-to tick.
+**Reminders** — your own trading rules ("no more than 2 trades per day"), each with the
+reason behind it. Active rules appear on the dashboard every day.
+
+**Trading floor** — see who else is online right now and which page they're on, or when
+they were last active. Live over Supabase Realtime presence.
 
 **Analytics** — win rate, average win vs. average loss, profit factor, payoff ratio,
 expectancy, max drawdown, equity curve, P&L by day/week/month, best and worst days,
-performance by symbol, weekday, direction and tag, and a discipline comparison showing
-whether completing the checklist actually correlates with better days.
+performance by symbol, weekday, direction and tag.
 
 ---
 
@@ -146,8 +153,15 @@ src/lib/api.js           Tag/attachment syncing and cascade-aware deletes
 src/lib/storage.js       Screenshot upload + signed URLs for the private bucket
 src/context/AuthContext  Session, profile and settings
 src/components/          Reusable UI, trade form, journal form, tag picker, uploader
-src/pages/               Dashboard, Trades, Journal, Checklist, Analytics, Settings
+src/pages/               Dashboard, Trades, Journal, Reminders, Analytics, Settings
+src/context/Presence     Realtime "who's online" + last-seen heartbeat
 ```
+
+## Theme
+
+Black-and-white by design: green means a win, red means a loss, and nothing else
+competes for that signal. Light and dark both ship — toggle in the top bar, and the
+choice is remembered.
 
 ## Notes
 

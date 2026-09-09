@@ -1,24 +1,28 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { PresenceBar } from './Presence'
 
 const LINKS = [
   { to: '/', label: 'Dashboard', ico: '◧', end: true },
   { to: '/trades', label: 'Trades', ico: '▤' },
   { to: '/journal', label: 'Journal', ico: '✎' },
-  { to: '/checklist', label: 'Checklist', ico: '✓' },
+  { to: '/reminders', label: 'Reminders', ico: '◆' },
   { to: '/analytics', label: 'Analytics', ico: '◫' },
 ]
 
-function toggleTheme() {
+function applyTheme(next) {
   const el = document.documentElement
-  const next = el.dataset.theme === 'light' ? 'dark' : 'light'
   if (next === 'light') el.dataset.theme = 'light'
   else delete el.dataset.theme
-  localStorage.setItem('tj-theme', next)
+  try { localStorage.setItem('tj-theme', next) } catch { /* private mode */ }
 }
 
 export default function Layout() {
   const { profile, user, signOut } = useAuth()
+  const [theme, setTheme] = useState(
+    () => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+  )
   const { pathname } = useLocation()
   const name = profile?.display_name || user?.email?.split('@')[0] || 'Trader'
   const title = LINKS.find((l) => l.to === pathname)?.label
@@ -62,8 +66,17 @@ export default function Layout() {
         <header className="topbar">
           <h1>{title}</h1>
           <div className="spacer" />
-          <button className="btn-ghost btn-sm" onClick={toggleTheme} title="Toggle light / dark">
-            ◐
+          <PresenceBar />
+          <button
+            className="btn-sm"
+            onClick={() => {
+              const next = theme === 'light' ? 'dark' : 'light'
+              setTheme(next)
+              applyTheme(next)
+            }}
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {theme === 'light' ? '☾ Dark' : '☀ Light'}
           </button>
         </header>
         <main className="content">

@@ -4,17 +4,21 @@ import { useAuth } from '../context/AuthContext'
 import { useTags, useAccounts, useTitle } from '../lib/hooks'
 import { loadTagLinks, deleteTrade } from '../lib/api'
 import { removeScreenshot } from '../lib/storage'
-import { money, pnlClass, shortDate, todayStr, startOfMonth, num } from '../lib/format'
+import { money, pnlClass, shortDate, longDate, todayStr, num, parseDateStr } from '../lib/format'
 import { stats } from '../lib/calc'
-import { Card, Empty, Loading, Field, TagChip, Stat } from '../components/ui'
+import { Card, Empty, Loading, Field, TagChip, Stat, Segmented } from '../components/ui'
 import TradeForm from '../components/TradeForm'
+import TradeCalendar from '../components/TradeCalendar'
 
-const RANGES = [
-  { value: 'week', label: 'This week' },
-  { value: 'month', label: 'This month' },
-  { value: 'all', label: 'All time' },
-  { value: 'custom', label: 'Custom' },
-]
+const monthOf = (d) => d.slice(0, 7)
+const monthLabel = (m) =>
+  parseDateStr(`${m}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+function shiftMonth(m, delta) {
+  const [y, mm] = m.split('-').map(Number)
+  const d = new Date(y, mm - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
 export default function Trades() {
   useTitle('Trades')
@@ -22,70 +26,64 @@ export default function Trades() {
   const { tags } = useTags()
   const { accounts } = useAccounts()
 
+  const [view, setView] = useState('calendar')
+  const [month, setMonth] = useState(monthOf(todayStr()))
+  const [selectedDay, setSelectedDay] = useState(null)
+
   const [trades, setTrades] = useState([])
   const [tagLinks, setTagLinks] = useState({})
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
   const [showForm, setShowForm] = useState(false)
 
-  const [range, setRange] = useState('month')
-  const [from, setFrom] = useState(startOfMonth())
-  const [to, setTo] = useState(todayStr())
   const [q, setQ] = useState('')
   const [dir, setDir] = useState('')
   const [accountId, setAccountId] = useState('')
   const [tagFilter, setTagFilter] = useState([])
 
+  // Load a generous window so the list view and month navigation both work
+  // without a round-trip on every click.
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    let query = supabase
+    const { data } = await supabase
       .from('trades')
       .select('*')
       .eq('user_id', user.id)
       .order('trade_date', { ascending: false })
       .order('created_at', { ascending: false })
-
-    if (range !== 'all') {
-      query = query.gte('trade_date', from).lte('trade_date', to)
-    }
-    const { data } = await query
     const rows = data || []
     setTrades(rows)
     setTagLinks(await loadTagLinks('trade_tags', 'trade_id', rows.map((t) => t.id)))
     setLoading(false)
-  }, [user, range, from, to])
+  }, [user])
 
   useEffect(() => { load() }, [load])
 
-  // keep the date inputs in step with the preset ranges
-  useEffect(() => {
-    const today = todayStr()
-    if (range === 'month') { setFrom(startOfMonth()); setTo(today) }
-    if (range === 'week') {
-      const d = new Date()
-      d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
-      const p = (x) => String(x).padStart(2, '0')
-      setFrom(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`)
-      setTo(today)
-    }
-  }, [range])
-
-  const filtered = useMemo(() => {
+  const matchesFilters = useCallback((t) => {
     const needle = q.trim().toLowerCase()
-    return trades.filter((t) => {
-      if (needle && !t.symbol.toLowerCase().includes(needle)) return false
-      if (dir && t.direction !== dir) return false
-      if (accountId && t.account_id !== accountId) return false
-      if (tagFilter.length) {
-        const has = tagLinks[t.id] || []
-        if (!tagFilter.every((id) => has.includes(id))) return false
-      }
-      return true
-    })
-  }, [trades, q, dir, accountId, tagFilter, tagLinks])
+    if (needle && !t.symbol.toLowerCase().includes(needle)) return false
+    if (dir && t.direction !== dir) return false
+    if (accountId && t.account_id !== accountId) return false
+    if (tagFilter.length) {
+      const has = tagLinks[t.id] || []
+      if (!tagFilter.every((id) => has.includes(id))) return false
+    }
+    return true
+  }, [q, dir, accountId, tagFilter, tagLinks])
 
-  const s = useMemo(() => stats(filtered), [filtered])
+  const filtered = useMemo(() => trades.filter(matchesFilters), [trades, matchesFilters])
+  const monthTrades = useMemo(
+    () => filtered.filter((t) => monthOf(t.trade_date) === month),
+    [filtered, month]
+  )
+  const dayTrades = useMemo(
+    () => (selectedDay ? filtered.filter((t) => t.trade_date === selectedDay) : []),
+    [filtered, selectedDay]
+  )
+
+  const scope = view === 'calendar' ? monthTrades : filtered
+  const s = useMemo(() => stats(scope), [scope])
   const accountName = (id) => accounts.find((a) => a.id === id)?.name
 
   async function handleDelete(trade) {
@@ -96,20 +94,29 @@ export default function Trades() {
     load()
   }
 
+  const openNew = (date) => {
+    setEditing(date ? { trade_date: date } : null)
+    setShowForm(true)
+  }
+
   return (
     <div className="col" style={{ gap: 16 }}>
       <div className="row-wrap">
-        <div className="grow" />
-        <button
-          className="btn-primary"
-          onClick={() => { setEditing(null); setShowForm(true) }}
-        >
-          ＋ Log trade
-        </button>
+        <Segmented
+          value={view}
+          onChange={(v) => { setView(v); setSelectedDay(null) }}
+          options={[
+            { value: 'calendar', label: 'Calendar' },
+            { value: 'list', label: 'List' },
+          ]}
+        />
+        <div className="spacer" />
+        <button className="btn-primary" onClick={() => openNew()}>＋ Log trade</button>
       </div>
 
       <div className="grid grid-4">
-        <Stat label="Net P&L" value={money(s.net, { sign: true })} tone={pnlClass(s.net)}
+        <Stat label={view === 'calendar' ? 'Net P&L (month)' : 'Net P&L'}
+              value={money(s.net, { sign: true })} tone={pnlClass(s.net)}
               sub={`${s.count} trade${s.count === 1 ? '' : 's'}`} />
         <Stat label="Win rate" value={`${(s.winRate * 100).toFixed(0)}%`}
               sub={`${s.wins}W · ${s.losses}L`} />
@@ -122,25 +129,10 @@ export default function Trades() {
 
       <Card>
         <div className="row-wrap" style={{ gap: 10 }}>
-          <div style={{ minWidth: 130 }}>
-            <Field label="Range">
-              <select value={range} onChange={(e) => setRange(e.target.value)}>
-                {RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
+          <div style={{ minWidth: 120 }} className="grow">
+            <Field label="Symbol">
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="All symbols" />
             </Field>
-          </div>
-          {range === 'custom' && (
-            <>
-              <div style={{ minWidth: 140 }}>
-                <Field label="From"><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
-              </div>
-              <div style={{ minWidth: 140 }}>
-                <Field label="To"><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
-              </div>
-            </>
-          )}
-          <div style={{ minWidth: 120 }}>
-            <Field label="Symbol"><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="All" /></Field>
           </div>
           <div style={{ minWidth: 110 }}>
             <Field label="Direction">
@@ -162,7 +154,6 @@ export default function Trades() {
             </div>
           )}
         </div>
-
         {tags.length > 0 && (
           <div className="row-wrap mt" style={{ gap: 6 }}>
             <span className="tiny faint">Tags:</span>
@@ -183,81 +174,144 @@ export default function Trades() {
         )}
       </Card>
 
-      <Card>
-        {loading ? (
-          <Loading rows={5} />
-        ) : filtered.length === 0 ? (
-          <Empty
-            icon="▤"
-            title="No trades here yet"
-            hint="Log your first trade to start building the record."
-            action={
-              <button className="btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>
-                ＋ Log trade
-              </button>
-            }
-          />
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Symbol</th>
-                  <th>Dir</th>
-                  <th className="right">Entry</th>
-                  <th className="right">Exit</th>
-                  <th className="right">Qty</th>
-                  <th>Tags</th>
-                  <th>Account</th>
-                  <th className="right">P&L</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((t) => (
-                  <tr
-                    key={t.id}
-                    className="clickable"
-                    onClick={() => { setEditing(t); setShowForm(true) }}
-                  >
-                    <td className="nowrap muted small">{shortDate(t.trade_date)}</td>
-                    <td style={{ fontWeight: 600 }}>{t.symbol}</td>
-                    <td>
-                      <span className={`chip dir-${t.direction}`}>
-                        {t.direction === 'long' ? '↑ Long' : '↓ Short'}
-                      </span>
-                    </td>
-                    <td className="right mono small">{t.entry_price ?? '—'}</td>
-                    <td className="right mono small">{t.exit_price ?? '—'}</td>
-                    <td className="right mono small">{num(t.quantity, 0)}</td>
-                    <td>
-                      <div className="row-wrap" style={{ gap: 4 }}>
-                        {(tagLinks[t.id] || []).map((id) => {
-                          const tag = tags.find((x) => x.id === id)
-                          return tag ? <TagChip key={id} tag={tag} /> : null
-                        })}
-                      </div>
-                    </td>
-                    <td className="small muted nowrap">{accountName(t.account_id) || '—'}</td>
-                    <td className={`right mono nowrap ${pnlClass(t.pnl)}`} style={{ fontWeight: 600 }}>
-                      {money(t.pnl, { sign: true })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      {loading ? (
+        <Card><Loading rows={5} /></Card>
+      ) : view === 'calendar' ? (
+        <>
+          <Card>
+            <div className="row-wrap mb">
+              <button className="btn-sm btn-ghost" onClick={() => setMonth(shiftMonth(month, -1))}>←</button>
+              <h2 style={{ minWidth: 168, textAlign: 'center' }}>{monthLabel(month)}</h2>
+              <button className="btn-sm btn-ghost" onClick={() => setMonth(shiftMonth(month, 1))}>→</button>
+              <div className="spacer" />
+              {month !== monthOf(todayStr()) && (
+                <button className="btn-sm" onClick={() => setMonth(monthOf(todayStr()))}>Today</button>
+              )}
+            </div>
+            <TradeCalendar
+              trades={monthTrades}
+              month={month}
+              selectedDay={selectedDay}
+              onSelectDay={setSelectedDay}
+            />
+            {monthTrades.length === 0 && (
+              <div className="small muted center" style={{ marginTop: 14 }}>
+                No trades in {monthLabel(month)}. Click any day to log one.
+              </div>
+            )}
+          </Card>
+
+          {selectedDay && (
+            <Card
+              title={longDate(selectedDay)}
+              action={
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="btn-sm" onClick={() => openNew(selectedDay)}>＋ Log on this day</button>
+                  <button className="btn-sm btn-ghost" onClick={() => setSelectedDay(null)}>✕</button>
+                </div>
+              }
+            >
+              {dayTrades.length === 0 ? (
+                <Empty icon="○" title="No trades on this day"
+                       action={<button className="btn-primary" onClick={() => openNew(selectedDay)}>＋ Log a trade</button>} />
+              ) : (
+                <>
+                  <div className="row mb">
+                    <span className="muted small">{dayTrades.length} trade{dayTrades.length === 1 ? '' : 's'}</span>
+                    <div className="spacer" />
+                    <span className={`mono ${pnlClass(stats(dayTrades).net)}`} style={{ fontSize: 19, fontWeight: 680 }}>
+                      {money(stats(dayTrades).net, { sign: true })}
+                    </span>
+                  </div>
+                  <TradeTable
+                    trades={dayTrades}
+                    tags={tags}
+                    tagLinks={tagLinks}
+                    accountName={accountName}
+                    onPick={(t) => { setEditing(t); setShowForm(true) }}
+                  />
+                </>
+              )}
+            </Card>
+          )}
+        </>
+      ) : (
+        <Card>
+          {filtered.length === 0 ? (
+            <Empty icon="▤" title="No trades here yet"
+                   hint="Log your first trade to start building the record."
+                   action={<button className="btn-primary" onClick={() => openNew()}>＋ Log trade</button>} />
+          ) : (
+            <TradeTable
+              trades={filtered}
+              tags={tags}
+              tagLinks={tagLinks}
+              accountName={accountName}
+              showDate
+              onPick={(t) => { setEditing(t); setShowForm(true) }}
+            />
+          )}
+        </Card>
+      )}
 
       {showForm && (
         <TradeForm
           trade={editing}
           onClose={() => { setShowForm(false); setEditing(null) }}
           onSaved={load}
-          onDeleted={handleDelete}
+          onDeleted={editing?.id ? handleDelete : undefined}
         />
       )}
+    </div>
+  )
+}
+
+function TradeTable({ trades, tags, tagLinks, accountName, onPick, showDate }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            {showDate && <th>Date</th>}
+            <th>Symbol</th>
+            <th>Dir</th>
+            <th className="right">Entry</th>
+            <th className="right">Exit</th>
+            <th className="right">Qty</th>
+            <th>Tags</th>
+            <th>Account</th>
+            <th className="right">P&L</th>
+          </tr>
+        </thead>
+        <tbody>
+          {trades.map((t) => (
+            <tr key={t.id} className="clickable" onClick={() => onPick(t)}>
+              {showDate && <td className="nowrap muted small">{shortDate(t.trade_date)}</td>}
+              <td style={{ fontWeight: 600 }}>{t.symbol}</td>
+              <td>
+                <span className={`chip dir-${t.direction}`}>
+                  {t.direction === 'long' ? '↑ Long' : '↓ Short'}
+                </span>
+              </td>
+              <td className="right mono small">{t.entry_price ?? '—'}</td>
+              <td className="right mono small">{t.exit_price ?? '—'}</td>
+              <td className="right mono small">{num(t.quantity, 0)}</td>
+              <td>
+                <div className="row-wrap" style={{ gap: 4 }}>
+                  {(tagLinks[t.id] || []).map((id) => {
+                    const tag = tags.find((x) => x.id === id)
+                    return tag ? <TagChip key={id} tag={tag} /> : null
+                  })}
+                </div>
+              </td>
+              <td className="small muted nowrap">{accountName(t.account_id) || '—'}</td>
+              <td className={`right mono nowrap ${pnlClass(t.pnl)}`} style={{ fontWeight: 600 }}>
+                {money(t.pnl, { sign: true })}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

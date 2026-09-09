@@ -10,7 +10,7 @@ import { loadTagLinks } from '../lib/api'
 import { money, num, pnlClass, shortDate, tinyDate, todayStr, addDays, startOfMonth } from '../lib/format'
 import {
   stats, byDay, byWeek, byMonth, equityCurve, maxDrawdown, groupStats,
-  weekdayOf, WEEKDAYS, checklistRatios, disciplineSplit,
+  weekdayOf, WEEKDAYS,
 } from '../lib/calc'
 import { Card, Stat, Empty, Loading, Segmented } from '../components/ui'
 
@@ -32,8 +32,6 @@ export default function Analytics() {
 
   const [trades, setTrades] = useState([])
   const [tagLinks, setTagLinks] = useState({})
-  const [logs, setLogs] = useState([])
-  const [activeItems, setActiveItems] = useState(0)
   const [range, setRange] = useState('90')
   const [grouping, setGrouping] = useState('day')
   const [loading, setLoading] = useState(true)
@@ -47,17 +45,11 @@ export default function Analytics() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const [{ data: t }, { data: lg }, { data: items }] = await Promise.all([
-      supabase.from('trades').select('*').eq('user_id', user.id)
-        .gte('trade_date', from).order('trade_date'),
-      supabase.from('checklist_logs').select('log_date, completed, item_id')
-        .eq('user_id', user.id).gte('log_date', from),
-      supabase.from('checklist_items').select('id').eq('user_id', user.id).eq('is_active', true),
-    ])
+    const { data: t } = await supabase
+      .from('trades').select('*').eq('user_id', user.id)
+      .gte('trade_date', from).order('trade_date')
     const rows = t || []
     setTrades(rows)
-    setLogs(lg || [])
-    setActiveItems((items || []).length)
     setTagLinks(await loadTagLinks('trade_tags', 'trade_id', rows.map((r) => r.id)))
     setLoading(false)
   }, [user, from])
@@ -91,9 +83,6 @@ export default function Analytics() {
 
   const bestDay = days.length ? days.reduce((a, b) => (b.pnl > a.pnl ? b : a)) : null
   const worstDay = days.length ? days.reduce((a, b) => (b.pnl < a.pnl ? b : a)) : null
-
-  const ratios = useMemo(() => checklistRatios(logs, activeItems), [logs, activeItems])
-  const split = useMemo(() => disciplineSplit(days, ratios), [days, ratios])
 
   const greenDays = days.filter((d) => d.pnl > 0).length
 
@@ -141,8 +130,8 @@ export default function Analytics() {
             <AreaChart data={curve} margin={{ top: 6, right: 6, left: -14, bottom: 0 }}>
               <defs>
                 <linearGradient id="eq2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--text)" stopOpacity={0.22} />
+                  <stop offset="100%" stopColor="var(--text)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
@@ -150,7 +139,7 @@ export default function Analytics() {
               <YAxis tickLine={false} axisLine={false} width={62}
                      tickFormatter={(v) => `$${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`} />
               <Tooltip {...chartTooltip} formatter={(v) => [money(v), 'Equity']} labelFormatter={shortDate} />
-              <Area type="monotone" dataKey="equity" stroke="var(--accent)" strokeWidth={2} fill="url(#eq2)" />
+              <Area type="monotone" dataKey="equity" stroke="var(--text)" strokeWidth={2} fill="url(#eq2)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -272,48 +261,6 @@ export default function Analytics() {
         </Card>
       </div>
 
-      <Card title="Discipline vs. results">
-        {activeItems === 0 ? (
-          <Empty icon="✓" title="No checklist items yet"
-                 hint="Set up a pre-market checklist to see whether following it makes you money." />
-        ) : (
-          <>
-            <div className="grid grid-2">
-              <div className="card" style={{ background: 'var(--bg-soft)' }}>
-                <div className="label small faint" style={{ fontWeight: 600 }}>CHECKLIST COMPLETE</div>
-                <div className={`value mono ${pnlClass(split.done.avg)}`} style={{ fontSize: 24, fontWeight: 680 }}>
-                  {money(split.done.avg, { sign: true })}
-                </div>
-                <div className="sub small muted">
-                  avg/day · {split.done.days} days · {(split.done.winRate * 100).toFixed(0)}% green
-                </div>
-              </div>
-              <div className="card" style={{ background: 'var(--bg-soft)' }}>
-                <div className="label small faint" style={{ fontWeight: 600 }}>CHECKLIST SKIPPED</div>
-                <div className={`value mono ${pnlClass(split.missed.avg)}`} style={{ fontSize: 24, fontWeight: 680 }}>
-                  {money(split.missed.avg, { sign: true })}
-                </div>
-                <div className="sub small muted">
-                  avg/day · {split.missed.days} days · {(split.missed.winRate * 100).toFixed(0)}% green
-                </div>
-              </div>
-            </div>
-            <div className="small muted mt">
-              {split.done.days === 0 || split.missed.days === 0 ? (
-                'Not enough of both kinds of day yet to compare — keep logging.'
-              ) : split.done.avg > split.missed.avg ? (
-                <>Days where you completed the checklist averaged{' '}
-                  <strong className="pos">{money(split.done.avg - split.missed.avg, { sign: true })}</strong>{' '}
-                  more than days you skipped it.</>
-              ) : (
-                <>No positive edge from the checklist in this range — the skipped days averaged{' '}
-                  <strong>{money(split.missed.avg - split.done.avg, { sign: true })}</strong> more.
-                  Worth reviewing whether the items are the right ones.</>
-              )}
-            </div>
-          </>
-        )}
-      </Card>
     </div>
   )
 }

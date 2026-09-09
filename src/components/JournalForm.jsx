@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTags } from '../lib/hooks'
 import { syncTags, syncAttachments, loadTagLinks, loadAttachments } from '../lib/api'
 import { todayStr } from '../lib/format'
-import { Modal, Field, Alert, DeleteButton } from './ui'
+import { Modal, Field, Alert, DeleteButton, Segmented } from './ui'
 import TagPicker from './TagPicker'
 import ScreenshotUploader from './Screenshots'
 import JournalFields from './JournalFields'
@@ -14,6 +14,7 @@ const BLANK = {
   entry_date: todayStr(),
   setup: '', reasoning: '', emotions: '', mistakes: '', improvements: '',
   is_shared: true,
+  outcome: '',
   trade_id: '',
 }
 
@@ -40,6 +41,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
       mistakes: entry.mistakes || '',
       improvements: entry.improvements || '',
       is_shared: entry.is_shared,
+      outcome: entry.outcome || '',
       trade_id: entry.trade_id || '',
     })
     ;(async () => {
@@ -67,6 +69,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
         mistakes: form.mistakes || null,
         improvements: form.improvements || null,
         is_shared: form.is_shared,
+        outcome: form.outcome || null,
         trade_id: form.trade_id || null,
       }
 
@@ -153,15 +156,35 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
           <ScreenshotUploader paths={paths} onChange={setPaths} />
         </Field>
 
-        <label className="row small" style={{ gap: 8, cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={form.is_shared}
-            onChange={(e) => setForm((f) => ({ ...f, is_shared: e.target.checked }))}
-          />
-          Share in the team journal
-          <span className="faint">— text, tags and screenshots only</span>
-        </label>
+        <div className="grid grid-2">
+          <Field label="How did it go?">
+            <Segmented
+              value={form.outcome}
+              onChange={(v) => setForm((f) => ({ ...f, outcome: f.outcome === v ? '' : v }))}
+              options={[
+                { value: 'win', label: 'Win' },
+                { value: 'loss', label: 'Loss' },
+                { value: 'breakeven', label: 'B/E' },
+              ]}
+            />
+          </Field>
+          <Field label="Visibility">
+            <Segmented
+              value={form.is_shared ? 'public' : 'private'}
+              onChange={(v) => setForm((f) => ({ ...f, is_shared: v === 'public' }))}
+              options={[
+                { value: 'public', label: '◉ Public' },
+                { value: 'private', label: '🔒 Private' },
+              ]}
+            />
+          </Field>
+        </div>
+        <div className="tiny faint">
+          {form.is_shared
+            ? 'Everyone signed in can read this entry — your writing, tags, screenshots and win/loss label. Your P&L, size and prices are never shared.'
+            : 'Only you can see this entry.'}
+          {' '}You can change this any time, and mark the outcome later.
+        </div>
 
         <button type="submit" hidden />
       </form>

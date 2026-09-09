@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
+import { PresenceProvider } from './context/PresenceContext'
 import './styles.css'
 
 const saved = localStorage.getItem('tj-theme')
@@ -12,7 +13,9 @@ createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <PresenceProvider>
+          <App />
+        </PresenceProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

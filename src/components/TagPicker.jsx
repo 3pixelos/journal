@@ -9,10 +9,10 @@ const KINDS = [
 ]
 
 const KIND_COLOR = {
-  strategy: '#5b8cff',
-  setup: '#3ddc97',
-  mistake: '#ff6b6b',
-  other: '#ffb454',
+  strategy: '#a3a3a3',
+  setup: '#22c55e',
+  mistake: '#ef4444',
+  other: '#737373',
 }
 
 /**

@@ -131,7 +131,7 @@ export function TagChip({ tag, onRemove, onClick, active }) {
       onClick={onClick}
       title={tag.kind}
     >
-      <i className="tag-dot" style={{ background: tag.color || 'var(--accent)' }} />
+      <i className="tag-dot" style={{ background: tag.color || 'var(--muted)' }} />
       {tag.name}
       {onRemove && (
         <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(tag) }}>✕</button>

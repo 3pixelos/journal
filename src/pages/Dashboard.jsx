@@ -13,13 +13,15 @@ import {
 import { byDay, stats, equityCurve, dateRange } from '../lib/calc'
 import { Card, Stat, Empty, Loading } from '../components/ui'
 import TradeForm from '../components/TradeForm'
+import EditableTarget from '../components/EditableTarget'
+import { PresenceCard } from '../components/Presence'
 
 export default function Dashboard() {
   useTitle('Dashboard')
-  const { user, profile, settings } = useAuth()
+  const { user, profile, settings, setSettings } = useAuth()
 
   const [trades, setTrades] = useState([])
-  const [checklist, setChecklist] = useState({ total: 0, done: 0 })
+  const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
 
@@ -32,18 +34,14 @@ export default function Dashboard() {
     setLoading(true)
     const since = addDays(today, -120)
 
-    const [{ data: t }, { data: items }, { data: logs }] = await Promise.all([
+    const [{ data: t }, { data: r }] = await Promise.all([
       supabase.from('trades').select('*').eq('user_id', user.id).gte('trade_date', since),
-      supabase.from('checklist_items').select('id').eq('user_id', user.id).eq('is_active', true),
-      supabase.from('checklist_logs').select('item_id, completed').eq('user_id', user.id).eq('log_date', today),
+      supabase.from('reminders').select('*').eq('user_id', user.id)
+        .eq('is_active', true).order('sort_order'),
     ])
 
     setTrades(t || [])
-    const activeIds = new Set((items || []).map((i) => i.id))
-    setChecklist({
-      total: activeIds.size,
-      done: (logs || []).filter((l) => l.completed && activeIds.has(l.item_id)).length,
-    })
+    setRules(r || [])
     setLoading(false)
   }, [user, today])
 
@@ -86,6 +84,12 @@ export default function Dashboard() {
     [trades]
   )
 
+  async function saveTarget(field, value) {
+    const { data } = await supabase
+      .from('settings').update({ [field]: value }).eq('user_id', user.id).select().single()
+    if (data) setSettings(data)
+  }
+
   const name = profile?.display_name || 'trader'
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
 
@@ -107,10 +111,9 @@ export default function Dashboard() {
               sub={`${todayStats.count} trade${todayStats.count === 1 ? '' : 's'}`} />
         <Stat label="This week" value={money(weekStats.net, { sign: true })} tone={pnlClass(weekStats.net)}
               sub={`${weekStats.count} trades · ${(weekStats.winRate * 100).toFixed(0)}% win`} />
-        <Stat label="Checklist today"
-              value={`${checklist.done}/${checklist.total}`}
-              tone={checklist.total > 0 && checklist.done === checklist.total ? 'pos' : ''}
-              sub={checklist.total === 0 ? 'no items yet' : checklist.done === checklist.total ? 'complete ✓' : 'still open'} />
+        <Stat label="Win rate (week)"
+              value={`${(weekStats.winRate * 100).toFixed(0)}%`}
+              sub={`${weekStats.wins}W · ${weekStats.losses}L`} />
         <Stat label="Profit factor (120d)"
               value={allStats.profitFactor === Infinity ? '∞' : num(allStats.profitFactor)}
               sub={`expectancy ${money(allStats.expectancy, { sign: true })}/trade`} />
@@ -122,7 +125,10 @@ export default function Dashboard() {
             <span className={`mono ${pnlClass(weekStats.net)}`} style={{ fontSize: 26, fontWeight: 680 }}>
               {money(weekStats.net, { sign: true })}
             </span>
-            <span className="muted small">of {money(goal)} goal</span>
+            <span className="muted small">
+              of <EditableTarget value={goal} label="weekly goal"
+                                 onSave={(v) => saveTarget('weekly_goal', v)} /> goal
+            </span>
           </div>
           <div className="bar pos"><span style={{ width: `${goalPct * 100}%` }} /></div>
           <div className="row tiny faint" style={{ marginTop: 5 }}>
@@ -130,13 +136,18 @@ export default function Dashboard() {
             <div className="spacer" />
             <span>{money(Math.max(goal - weekStats.net, 0))} to go</span>
           </div>
+          <div className="tiny faint" style={{ marginTop: 8 }}>
+            Click any target to change it.
+          </div>
 
           <div className="mt">
             <div className="row tiny" style={{ marginBottom: 5 }}>
               <span className="faint">Weekly max loss</span>
               <div className="spacer" />
               <span className={lossPct >= 1 ? 'neg' : 'muted'}>
-                {money(Math.max(-weekStats.net, 0))} / {money(weeklyMaxLoss)}
+                {money(Math.max(-weekStats.net, 0))} /{' '}
+                <EditableTarget value={weeklyMaxLoss} label="weekly max loss"
+                                onSave={(v) => saveTarget('weekly_max_loss', v)} />
               </span>
             </div>
             <div className="bar neg"><span style={{ width: `${lossPct * 100}%` }} /></div>
@@ -147,7 +158,9 @@ export default function Dashboard() {
               <span className="faint">Daily max loss</span>
               <div className="spacer" />
               <span className={dailyLossPct >= 1 ? 'neg' : 'muted'}>
-                {money(Math.max(-todayStats.net, 0))} / {money(dailyMaxLoss)}
+                {money(Math.max(-todayStats.net, 0))} /{' '}
+                <EditableTarget value={dailyMaxLoss} label="daily max loss"
+                                onSave={(v) => saveTarget('daily_max_loss', v)} />
               </span>
             </div>
             <div className="bar neg"><span style={{ width: `${dailyLossPct * 100}%` }} /></div>
@@ -184,6 +197,27 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      <div className="grid grid-2">
+        <Card title="Today's rules" action={<Link className="small" to="/reminders">Edit →</Link>}>
+          {rules.length === 0 ? (
+            <Empty icon="◆" title="No rules set"
+                   hint="Add the rules you want in front of you before every session."
+                   action={<Link className="btn btn-primary" to="/reminders">＋ Add rules</Link>} />
+          ) : (
+            <div className="rules-strip">
+              {rules.map((r, i) => (
+                <div className="rule-pill" key={r.id}>
+                  <span className="rnum">{i + 1}</span>
+                  <span className="grow">{r.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <PresenceCard />
+      </div>
+
       <Card title="Equity curve" action={<Link className="small" to="/analytics">Full analytics →</Link>}>
         {curve.length < 2 ? (
           <Empty icon="◫" title="Not enough data yet" hint="Log a few trades and the curve will appear here." />
@@ -193,8 +227,8 @@ export default function Dashboard() {
               <AreaChart data={curve} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--text)" stopOpacity={0.22} />
+                    <stop offset="100%" stopColor="var(--text)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
@@ -206,7 +240,7 @@ export default function Dashboard() {
                   formatter={(v) => [money(v), 'Equity']}
                   labelFormatter={shortDate}
                 />
-                <Area type="monotone" dataKey="equity" stroke="var(--accent)" strokeWidth={2} fill="url(#eq)" />
+                <Area type="monotone" dataKey="equity" stroke="var(--text)" strokeWidth={2} fill="url(#eq)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

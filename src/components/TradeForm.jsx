@@ -43,7 +43,9 @@ export default function TradeForm({ trade, onClose, onSaved, onDeleted }) {
   const { tags, createTag } = useTags()
   const { accounts } = useAccounts()
 
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState(() =>
+    trade?.trade_date && !trade?.id ? { ...BLANK, trade_date: trade.trade_date } : BLANK
+  )
   const [tagIds, setTagIds] = useState([])
   const [paths, setPaths] = useState([])
   const [journal, setJournal] = useState(BLANK_JOURNAL)

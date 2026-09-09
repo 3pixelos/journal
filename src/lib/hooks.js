@@ -42,7 +42,7 @@ export function useTags() {
   useEffect(() => { load() }, [load])
 
   const createTag = useCallback(
-    async (name, kind = 'strategy', color = '#5b8cff') => {
+    async (name, kind = 'strategy', color = '#a3a3a3') => {
       const clean = name.trim()
       if (!clean) return null
       const existing = tags.find(
