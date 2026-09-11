@@ -5,7 +5,8 @@ import { useAuth } from './AuthContext'
 
 const PresenceCtx = createContext({ online: [], roster: [], loading: true })
 
-const HEARTBEAT_MS = 120000 // write last_seen_at every 2 minutes
+const ROSTER_MS = 5000      // re-read who's around and when they were last seen
+const HEARTBEAT_MS = 30000  // write our own last_seen_at
 
 /**
  * Live presence over a shared Realtime channel, plus a `last_seen_at`
@@ -34,9 +35,17 @@ export function PresenceProvider({ children }) {
         setLoading(false)
       }
     }
+    // Poll only while the tab is actually being looked at; a hidden tab
+    // catches up the moment it comes back.
+    const tick = () => { if (document.visibilityState === 'visible') fetchProfiles() }
     fetchProfiles()
-    const t = setInterval(fetchProfiles, HEARTBEAT_MS)
-    return () => { alive = false; clearInterval(t) }
+    const t = setInterval(tick, ROSTER_MS)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      alive = false
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', tick)
+    }
   }, [user])
 
   // ---- realtime presence channel --------------------------------------
