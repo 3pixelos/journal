@@ -48,14 +48,14 @@
   --accent: #08090b;
   --accent-fg: #ffffff;
   --accent-soft: rgba(8, 9, 11, 0.06);
-  --pos: #0f9d58;
-  --pos-dim: #0b7c45;
-  --neg: #e03131;
-  --neg-dim: #b02525;
-  --pos-soft: rgba(15, 157, 88, 0.12);
-  --neg-soft: rgba(224, 49, 49, 0.11);
-  --pos-glow: rgba(15, 157, 88, 0.2);
-  --neg-glow: rgba(224, 49, 49, 0.18);
+  --pos: #079455;
+  --pos-dim: #05733f;
+  --neg: #d92626;
+  --neg-dim: #b01f1f;
+  --pos-soft: rgba(7, 148, 85, 0.17);
+  --neg-soft: rgba(217, 38, 38, 0.15);
+  --pos-glow: rgba(7, 148, 85, 0.3);
+  --neg-glow: rgba(217, 38, 38, 0.28);
   --warn: #b45309;
   --shadow: 0 8px 24px rgba(15, 20, 30, 0.09);
   --shadow-sm: 0 1px 4px rgba(15, 20, 30, 0.07);
@@ -842,3 +842,38 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 .floor-row.away .avatar { filter: grayscale(0.55); opacity: 0.6; }
 .floor-row.away .floor-name { color: var(--muted); }
 .floor-when { font-size: 10.5px; color: var(--faint); }
+
+/* ===== light mode: make green and red actually land ================= */
+/* A tint that reads on black disappears on white, so light mode gets
+   stronger fills, a coloured edge on calendar days, and no text glow
+   (which just muddies dark text on a pale ground). */
+:root[data-theme='light'] .cal-cell.win {
+  background: rgba(7, 148, 85, 0.15);
+  border: 1px solid rgba(7, 148, 85, 0.5);
+  box-shadow: inset 3px 0 0 var(--pos);
+}
+:root[data-theme='light'] .cal-cell.loss {
+  background: rgba(217, 38, 38, 0.13);
+  border: 1px solid rgba(217, 38, 38, 0.5);
+  box-shadow: inset 3px 0 0 var(--neg);
+}
+:root[data-theme='light'] .cal-cell.win .daynum,
+:root[data-theme='light'] .cal-cell.loss .daynum { color: var(--text); }
+:root[data-theme='light'] .cal-cell.win.today,
+:root[data-theme='light'] .cal-cell.loss.today { border-color: var(--text); }
+
+:root[data-theme='light'] .hero-value.pos,
+:root[data-theme='light'] .hero-value.neg { text-shadow: none; }
+:root[data-theme='light'] .hero-bar > span { box-shadow: none; }
+:root[data-theme='light'] .hero::after { opacity: 1; }
+
+:root[data-theme='light'] .chip.dir-long {
+  background: rgba(7, 148, 85, 0.14); border-color: rgba(7, 148, 85, 0.4);
+}
+:root[data-theme='light'] .chip.dir-short {
+  background: rgba(217, 38, 38, 0.12); border-color: rgba(217, 38, 38, 0.4);
+}
+:root[data-theme='light'] .alert.error { border-color: rgba(217, 38, 38, 0.35); }
+:root[data-theme='light'] .alert.ok { border-color: rgba(7, 148, 85, 0.35); }
+:root[data-theme='light'] .btn-go { box-shadow: 0 3px 10px rgba(7, 148, 85, 0.28); }
+:root[data-theme='light'] .presence-dot.online { box-shadow: 0 0 0 3px rgba(7, 148, 85, 0.25); }
