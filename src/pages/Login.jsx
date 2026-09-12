@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase, resolveLoginEmail } from '../lib/supabase'
 import { Alert, Field } from '../components/ui'
+import { resetWelcome } from '../components/Welcome'
 import { useTitle } from '../lib/hooks'
 
 export default function Login() {
@@ -22,6 +23,7 @@ export default function Login() {
     setNotice('')
     try {
       if (mode === 'signin') {
+        resetWelcome()
         const resolved = await resolveLoginEmail(identifier)
         // An unknown display name gets the same answer as a wrong password,
         // so this cannot be used to probe which names exist.
@@ -33,6 +35,7 @@ export default function Login() {
         if (error) throw error
       } else if (mode === 'signup') {
         if (password.length < 8) throw new Error('Password must be at least 8 characters.')
+        resetWelcome()
         const { data, error } = await supabase.auth.signUp({
           email,
           password,

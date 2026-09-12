@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { resetWelcome } from '../components/Welcome'
 
 const AuthCtx = createContext(null)
 
@@ -77,7 +78,7 @@ export function AuthProvider({ children }) {
     refreshMeta: loadMeta,
     setProfile,
     setSettings,
-    signOut: () => supabase.auth.signOut(),
+    signOut: () => { resetWelcome(); return supabase.auth.signOut() },
   }
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

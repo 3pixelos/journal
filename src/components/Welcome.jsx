@@ -4,11 +4,16 @@ import { useAuth } from '../context/AuthContext'
 const KEY = 'tj-welcomed'
 const SHOW_MS = 3600
 
+/** Forget that we've welcomed this tab, so the next sign-in shows it again. */
+export function resetWelcome() {
+  try { sessionStorage.removeItem(KEY) } catch { /* private mode */ }
+}
+
 /**
- * Full-screen "Welcome back, Adam" on the first paint of a session, held for
- * a few seconds, then faded out. Once per sign-in — the sessionStorage flag
- * lives exactly as long as the auth session does, so a refresh mid-session
- * doesn't replay it but the next sign-in does.
+ * Full-screen "Welcome back, Adam" right after signing in, held for a few
+ * seconds, then faded out. Once per sign-in: the flag is cleared when you
+ * sign out and when you submit the login form, so a refresh mid-session
+ * doesn't replay it but every fresh sign-in does.
  */
 export default function Welcome() {
   const { user, profile } = useAuth()
