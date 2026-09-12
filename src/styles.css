@@ -937,13 +937,13 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   font-weight: 400;
   font-size: clamp(28px, 4.4vw, 46px);
   letter-spacing: 0.005em;
-  color: #e6d3a3;
-  text-shadow: 0 0 40px rgba(230, 211, 163, 0.18);
+  color: #dfe3ea;
+  text-shadow: 0 0 40px rgba(223, 227, 234, 0.2);
   animation: welcome-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .welcome-line {
   width: 0; height: 1px; margin: 18px auto 0;
-  background: linear-gradient(90deg, transparent, #e6d3a3, transparent);
+  background: linear-gradient(90deg, transparent, #c9ced8, transparent);
   animation: welcome-line 1.4s ease 0.35s forwards;
 }
 @keyframes welcome-in {
