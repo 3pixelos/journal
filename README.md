@@ -144,11 +144,16 @@ multiplier, fees, account and date. P&L auto-calculates from the prices (with on
 NQ, MES, ES, GC) and stays editable for partial fills or broker-reported totals. Filter
 by range, symbol, direction, account and tags.
 
-**Journal** — a per-trade or standalone entry covering setup, reasoning, emotional
-state, mistakes and what you'd do differently, plus tags and chart screenshots. Every
-entry has a **Public / Private** toggle and an optional **win / loss / breakeven** label
-you can set later, straight from the feed. Two views: *My journal* and *Team feed*, and
-in the feed you can filter by person or by outcome.
+**Journal** — a wall of chart tiles. Each entry shows its screenshot with the symbol,
+a ↗ Win / ↘ Loss tag, the date and — on your own entries only — the P&L and fill
+prices from the linked trade. Search by symbol, amount, setup, tag or note; filter by
+date range, account, outcome, tag or person; flip between grid and list. Click a tile
+for the full entry: every screenshot, every written section, and win/loss or
+public/private changed in place. Entries without an explicit outcome take it from the
+linked trade's sign.
+
+**Welcome screen** — "Welcome back, Adam" on a dark gradient for a few seconds after
+each sign-in, then it fades into the app. Once per session, not on every refresh.
 
 **Reminders** — your own trading rules ("no more than 2 trades per day"), each with the
 reason behind it. Active rules appear on the dashboard every day.

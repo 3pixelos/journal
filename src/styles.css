@@ -721,7 +721,7 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 /* ===== journal gallery ============================================== */
 .gallery {
   display: grid; gap: 14px;
-  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
 }
 .jcard {
   border: 1px solid var(--line); border-radius: var(--radius);
@@ -737,29 +737,68 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 }
 .jcard-media {
   width: 100%;
-  aspect-ratio: 16 / 10; background: var(--panel-2);
+  aspect-ratio: 16 / 9; background: var(--bg-soft);
   display: grid; place-items: center; overflow: hidden; position: relative;
+  border-bottom: 1px solid var(--line-soft);
 }
 .jcard-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.jcard-media .noimg { color: var(--faint); font-size: 26px; }
-.jcard-media .badges {
-  position: absolute; top: 8px; left: 8px; display: flex; gap: 5px; flex-wrap: wrap;
+.jcard-media .noimg {
+  color: var(--faint); font-size: 12px; font-weight: 600;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 9px, rgba(127,127,127,0.06) 9px 10px);
+  width: 100%; height: 100%; display: grid; place-items: center;
 }
 .jcard-media .count {
   position: absolute; bottom: 8px; right: 8px;
   background: rgba(0, 0, 0, 0.62); color: #fff; border-radius: 99px;
   font-size: 11px; padding: 2px 8px; font-weight: 600;
 }
-.jcard-body { padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 5px; }
-.jcard-title {
-  font-weight: 700; font-size: 14.5px; line-height: 1.3; color: var(--text);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.jcard-lock {
+  position: absolute; top: 8px; left: 8px;
+  background: rgba(0, 0, 0, 0.62); color: #fff; border-radius: 99px;
+  font-size: 11px; padding: 2px 7px;
 }
-.jcard-meta { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.jcard-excerpt {
-  font-size: 12.5px; color: var(--muted); line-height: 1.45;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.jcard-foot {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 10px; padding: 11px 13px 12px;
 }
+.jcard-left { min-width: 0; }
+.jcard-right { text-align: right; flex: 0 0 auto; }
+.jcard-sym {
+  font-weight: 800; font-size: 14.5px; color: var(--text); letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.jcard-tag { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.jcard-tag.win { color: var(--pos); }
+.jcard-tag.loss { color: var(--neg); }
+.jcard-tag.be { color: var(--muted); }
+.jcard-date { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.jcard-pill {
+  display: inline-block; margin-top: 9px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 6px;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--text-2);
+}
+.jcard-pill.empty { color: var(--faint); border-style: dashed; }
+.jcard-pnl {
+  font-size: 15.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em; white-space: nowrap;
+}
+.jcard-fill { font-size: 10.5px; color: var(--faint); margin-top: 3px; white-space: nowrap; }
+
+/* list view of the same entries */
+.jlist-thumb {
+  width: 64px; height: 40px; border-radius: 6px; overflow: hidden;
+  background: var(--panel-2); border: 1px solid var(--line-soft); flex: 0 0 auto;
+}
+.jlist-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* toolbar */
+.jtool { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.jtool .search { flex: 1 1 260px; min-width: 200px; }
+.jtool select { width: auto; }
+.jtool input[type='date'] { width: 140px; }
+.jcount { font-size: 12px; color: var(--muted); font-weight: 500; }
 
 /* full-size images inside the entry modal */
 .jshots { display: grid; gap: 10px; }
@@ -783,9 +822,12 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 @media (max-width: 760px) {
   .hero-value { font-size: 40px; }
   .hero { padding: 17px 16px 16px; border-radius: 15px; }
-  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .jcard-title { font-size: 13px; }
-  .jcard-excerpt { display: none; }
+  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .jcard-sym { font-size: 12.5px; }
+  .jcard-pnl { font-size: 13px; }
+  .jcard-pill, .jcard-fill { display: none; }
+  .jcard-foot { padding: 8px 9px 9px; }
+  .jtool input[type='date'] { width: 120px; }
   .weekstrip { gap: 4px; }
   .weekstrip .cal-cell { min-height: 60px; }
 }
@@ -877,3 +919,43 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 :root[data-theme='light'] .alert.ok { border-color: rgba(7, 148, 85, 0.35); }
 :root[data-theme='light'] .btn-go { box-shadow: 0 3px 10px rgba(7, 148, 85, 0.28); }
 :root[data-theme='light'] .presence-dot.online { box-shadow: 0 0 0 3px rgba(7, 148, 85, 0.25); }
+
+/* ===== welcome screen =============================================== */
+.welcome {
+  position: fixed; inset: 0; z-index: 1000;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(110% 80% at 50% 120%, #1a1a24 0%, transparent 60%),
+    radial-gradient(90% 70% at 50% -10%, #15151c 0%, transparent 55%),
+    #060608;
+  animation: welcome-out 0.75s ease 2.85s forwards;
+  cursor: default;
+}
+.welcome-inner { text-align: center; padding: 0 24px; }
+.welcome h1 {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: clamp(28px, 4.4vw, 46px);
+  letter-spacing: 0.005em;
+  color: #e6d3a3;
+  text-shadow: 0 0 40px rgba(230, 211, 163, 0.18);
+  animation: welcome-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.welcome-line {
+  width: 0; height: 1px; margin: 18px auto 0;
+  background: linear-gradient(90deg, transparent, #e6d3a3, transparent);
+  animation: welcome-line 1.4s ease 0.35s forwards;
+}
+@keyframes welcome-in {
+  from { opacity: 0; transform: translateY(10px); filter: blur(3px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+@keyframes welcome-line { to { width: 120px; } }
+@keyframes welcome-out { to { opacity: 0; visibility: hidden; } }
+
+/* light mode keeps the same dark intro — it's a moment, not a page */
+@media (prefers-reduced-motion: reduce) {
+  .welcome { animation-delay: 1.4s; animation-duration: 0.3s; }
+  .welcome h1, .welcome-line { animation: none; }
+  .welcome-line { width: 120px; }
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSignedUrls } from '../lib/hooks'
-import { longDate, relTime } from '../lib/format'
+import { longDate, relTime, money, pnlClass } from '../lib/format'
 import { JOURNAL_FIELDS } from './JournalFields'
 import OutcomeBadge, { OUTCOMES } from './OutcomeBadge'
 import Avatar from './Avatar'
@@ -9,7 +9,7 @@ import { Modal, TagChip, Lightbox, Empty } from './ui'
 /** The whole entry in a popup: pictures, every written section, and — if it's
  *  yours — marking it win/loss, flipping visibility, or opening the editor. */
 export default function JournalDetail({
-  entry, author, tags = [], paths = [], isMine, onClose, onEdit, onMark,
+  entry, trade, author, tags = [], paths = [], isMine, onClose, onEdit, onMark,
 }) {
   const [zoom, setZoom] = useState(null)
   const urls = useSignedUrls(paths)
@@ -43,6 +43,19 @@ export default function JournalDetail({
         <OutcomeBadge outcome={entry.outcome} />
         <span className="chip">{entry.is_shared ? '◉ Public' : '🔒 Private'}</span>
       </div>
+
+      {isMine && trade && (
+        <div className="daysum">
+          <span className={`big ${pnlClass(trade.pnl)}`}>{money(trade.pnl, { sign: true })}</span>
+          <span className="muted small">
+            {trade.symbol} · {trade.direction === 'long' ? '↑ Long' : '↓ Short'}
+            {trade.entry_price != null && trade.exit_price != null
+              && ` · ${trade.entry_price} → ${trade.exit_price}`}
+          </span>
+          <span className="spacer" />
+          <span className="tiny faint">only you see this</span>
+        </div>
+      )}
 
       {isMine && (
         <div className="row-wrap" style={{ gap: 6 }}>

@@ -7,6 +7,7 @@ import Trades from './pages/Trades'
 import Journal from './pages/Journal'
 import Reminders from './pages/Reminders'
 import Settings from './pages/Settings'
+import Welcome from './components/Welcome'
 
 export default function App() {
   const { session, loading } = useAuth()
@@ -29,15 +30,18 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/trades" element={<Trades />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/reminders" element={<Reminders />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Welcome />
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/trades" element={<Trades />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/reminders" element={<Reminders />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }
