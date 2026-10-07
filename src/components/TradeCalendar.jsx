@@ -47,8 +47,17 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
     return rows
   }, [trades, month])
 
+  // Eight columns on a phone leaves ~24px per day, which cannot hold a
+  // figure. Weekends are shut anyway, so they fold away on narrow screens —
+  // unless something was actually traded on one, in which case the month
+  // keeps all seven days and nothing is hidden.
+  const weekendTrades = useMemo(
+    () => weeks.some((w) => w.some((d) => d.isWeekend && d.inMonth && d.count > 0)),
+    [weeks]
+  )
+
   return (
-    <div className="cal">
+    <div className={`cal ${weekendTrades ? '' : 'fold-weekends'}`}>
       <div className="cal-head">
         {DOW.map((d, i) => (
           <span key={d} className={i >= 5 ? 'weekend-head' : ''}>{d}</span>

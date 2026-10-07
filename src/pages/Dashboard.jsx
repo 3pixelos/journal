@@ -150,7 +150,7 @@ export default function Dashboard() {
 
       {/* ---- the number that matters, big ---- */}
       <div className={`hero ${behind ? 'behind' : ''}`}>
-        <div className="row">
+        <div className="row hero-top">
           <div>
             <div className="hero-label">
               {period === 'day' ? 'Today' : period === 'week' ? 'This week' : 'This month'}
@@ -162,7 +162,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="spacer" />
-          <div className="right">
+          <div className="right hero-goal">
             <div className="hero-label">Goal {f.noun}</div>
             <div style={{ fontSize: 21, fontWeight: 760, letterSpacing: '-0.03em' }}>
               <EditableTarget value={goal} label={`${period} goal`}

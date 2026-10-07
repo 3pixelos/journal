@@ -299,6 +299,7 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 .chip {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 9px; border-radius: 99px;
+  white-space: nowrap;
   font-size: 12px; font-weight: 550;
   background: var(--panel-2); color: var(--muted);
   border: 1px solid var(--line);
@@ -1082,3 +1083,89 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 .checkrow.done .step-n { background: var(--pos); border-color: var(--pos); color: #04140c; }
 .mr-check.on .step-n { background: var(--pos); border-color: var(--pos); color: #04140c; }
 .hero-tile .s { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ===== phones ======================================================= */
+@media (max-width: 760px) {
+  /* The headline and its goal sit side by side on a desktop; on a phone
+     there is no room, so the goal drops under the number instead of being
+     squeezed off the right edge. */
+  .hero-top { flex-direction: column; align-items: stretch; gap: 10px; }
+  .hero-top .spacer { display: none; }
+  .hero-goal {
+    text-align: left;
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    padding-top: 10px; border-top: 1px solid var(--line-soft);
+  }
+  .hero-goal .hero-label { order: 1; }
+  .hero-goal > div:nth-child(2) { order: 2; font-size: 18px !important; }
+  .hero-goal .tiny { order: 3; }
+  .hero-value { font-size: 38px; }
+  .hero-grid { grid-template-columns: 1fr; }
+
+  /* A price is a short number — three across stays readable and saves a
+     lot of vertical scrolling on the entry form. */
+  .sizer .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .sizer .grid-3 input { padding: 9px 7px; font-size: 13.5px; }
+  .sizer .grid-3 label.field > span { font-size: 9.5px; letter-spacing: 0.03em; }
+  .sizer .grid-2 { grid-template-columns: 1fr; }
+  .sizer .seg { flex-wrap: wrap; }
+  .sizer .seg button { flex: 1 1 auto; }
+
+  /* Segmented controls should never clip their last option. */
+  .seg { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .seg::-webkit-scrollbar { display: none; }
+
+  /* Toolbar: search on its own line, controls beneath it. */
+  .jtool .search { flex: 1 1 100%; min-width: 0; }
+  .jtool select, .jtool input[type='date'] { flex: 1 1 auto; width: auto; min-width: 0; }
+
+  /* Modals use the full screen rather than a floating card. */
+  .overlay { padding: 0; }
+  .modal {
+    border-radius: 0; min-height: 100%; max-width: none;
+    display: flex; flex-direction: column;
+  }
+  .modal-head { border-radius: 0; padding: 13px 14px; }
+  .modal-body { padding: 14px; flex: 1; }
+  .modal-foot {
+    position: sticky; bottom: 0; background: var(--panel);
+    padding: 11px 14px calc(11px + env(safe-area-inset-bottom));
+    flex-wrap: wrap; gap: 8px;
+  }
+  .modal-foot button { flex: 1 1 auto; justify-content: center; }
+
+  /* Inputs at 16px stop iOS zooming the page on focus. */
+  input, select, textarea { font-size: 16px; }
+
+  /* Comfortable tap targets. */
+  button, .btn { padding: 10px 14px; }
+  .btn-sm { padding: 7px 11px; }
+  .checkrow { padding: 13px 12px; }
+
+  .daysum { flex-wrap: wrap; }
+  .daysum .big { font-size: 22px; }
+  .model-read { padding: 11px; }
+  .mr-check { align-items: flex-start; }
+}
+
+@media (max-width: 420px) {
+  .hero-value { font-size: 33px; }
+  .gallery { grid-template-columns: 1fr; }
+  .jcard-media { aspect-ratio: 16 / 9; }
+}
+
+/* Weekends fold away on narrow screens so weekday figures have room to
+   breathe; a month containing a weekend trade keeps all seven columns. */
+@media (max-width: 560px) {
+  .cal.fold-weekends .cal-head,
+  .cal.fold-weekends .cal-week {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(48px, 0.82fr);
+  }
+  .cal.fold-weekends .cal-head span:nth-child(6),
+  .cal.fold-weekends .cal-head span:nth-child(7),
+  .cal.fold-weekends .cal-week > :nth-child(6),
+  .cal.fold-weekends .cal-week > :nth-child(7) { display: none; }
+
+  .cal-cell, .cal-total { padding: 4px 4px; }
+  .cal-cell .cal-pnl, .cal-total .cal-pnl { font-size: 11px; }
+}
