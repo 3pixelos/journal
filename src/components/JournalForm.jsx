@@ -24,9 +24,9 @@ const BLANK = {
 }
 
 const BLANK_SIZE = {
-  contract: '', direction: 'long', qty: '1',
-  stopPoints: '', targetPoints: '', result: '',
-  fees: '0', manualPnl: '', balance: '',
+  contract: '', qty: '1',
+  entryPrice: '', stopPrice: '', targetPrice: '', exitPrice: '',
+  result: '', fees: '0', balance: '',
 }
 
 function Section({ n, title, hint, children }) {
@@ -93,13 +93,13 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
         if (t) {
           setSize({
             contract: t.contract || '',
-            direction: t.direction || 'long',
             qty: String(t.quantity ?? '1'),
-            stopPoints: t.stop_points ?? '',
-            targetPoints: t.target_points ?? '',
+            entryPrice: t.entry_price ?? '',
+            stopPrice: t.stop_price ?? '',
+            targetPrice: t.target_price ?? '',
+            exitPrice: t.result === 'manual' ? (t.exit_price ?? '') : '',
             result: t.result || '',
             fees: String(t.fees ?? '0'),
-            manualPnl: t.result === 'manual' ? String(t.pnl ?? '') : '',
             balance: t.account_balance ?? '',
           })
         }
@@ -115,10 +115,10 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
     if (!size.result || form.outcome) return
     const o = size.result === 'target' ? 'win'
       : size.result === 'stop' ? 'loss'
-      : Number(size.manualPnl) > 0 ? 'win'
-      : Number(size.manualPnl) < 0 ? 'loss' : ''
+      : sized.pnl > 0 ? 'win'
+      : sized.pnl < 0 ? 'loss' : ''
     if (o) setForm((f) => (f.outcome ? f : { ...f, outcome: o }))
-  }, [size.result, size.manualPnl]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [size.result, sized.pnl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleCheck = (id) =>
     setChecked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
@@ -131,19 +131,26 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
       // --- 1. the trade, so the P&L reaches the calendar ---------------
       let tradeId = form.trade_id || null
       if (sized.complete) {
+        const numOrNull = (v) => (v === '' || v == null ? null : Number(v))
         const tradePayload = {
           user_id: user.id,
           symbol: size.contract,
           contract: size.contract,
-          direction: size.direction,
+          direction: sized.dir || 'long',
           quantity: Number(size.qty) || 1,
           multiplier: perPoint(size.contract),
-          stop_points: size.stopPoints === '' ? null : Number(size.stopPoints),
-          target_points: size.targetPoints === '' ? null : Number(size.targetPoints),
+          entry_price: numOrNull(size.entryPrice),
+          exit_price: sized.exit,
+          stop_price: numOrNull(size.stopPrice),
+          target_price: numOrNull(size.targetPrice),
+          // distances are derived, but stored so analytics never has to
+          // re-derive them from prices
+          stop_points: sized.stopPoints || null,
+          target_points: sized.targetPoints || null,
           result: size.result,
           fees: Number(size.fees) || 0,
           pnl: Number(sized.pnl.toFixed(2)),
-          account_balance: size.balance === '' ? null : Number(size.balance),
+          account_balance: numOrNull(size.balance),
           trade_date: form.entry_date,
         }
         if (tradeId) {
@@ -258,7 +265,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
         </Section>
 
         <Section n="2" title="The trade"
-                 hint="Points in, dollars out — this is what lands on your calendar.">
+                 hint="Enter the prices you saw — the points and dollars are worked out for you.">
           <TradeSizer value={size} onChange={setSize} />
           {!sized.complete && linkable.length > 0 && (
             <Field label="…or link an existing trade instead">

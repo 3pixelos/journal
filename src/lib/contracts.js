@@ -21,47 +21,95 @@ const n = (v) => {
   return Number.isFinite(x) ? x : 0
 }
 
+const given = (v) => v !== '' && v !== null && v !== undefined && Number.isFinite(Number(v))
+
 /**
- * Turn a planned stop and target in points into dollars.
+ * Work a trade out from the prices you actually saw on the chart.
  *
- * risk    = stop points   x $/point x contracts
- * reward  = target points x $/point x contracts
+ * You give entry, stop and target as prices. Direction falls out of them —
+ * a target above entry is a long, below is a short — and the point distances
+ * follow, which is what the dollar maths needs:
  *
- * The realised P&L follows `result`: hitting the target pays the reward,
- * hitting the stop costs the risk, and a manual close uses whatever amount
- * was typed. Fees come off every outcome.
+ *   risk   = |entry - stop|   x $/point x contracts
+ *   reward = |target - entry| x $/point x contracts
+ *
+ * Hitting the target pays the reward, hitting the stop costs the risk, and a
+ * manual close is priced off wherever you actually got out. Fees come off
+ * every outcome.
  */
 export function sizeTrade({
-  contract, qty, stopPoints, targetPoints, result, fees, manualPnl, balance,
+  contract, qty, entryPrice, stopPrice, targetPrice, exitPrice,
+  result, fees, balance,
 }) {
   const pp = perPoint(contract)
   const contracts = Math.max(n(qty), 0)
-  const stop = Math.abs(n(stopPoints))
-  const target = Math.abs(n(targetPoints))
   const cost = n(fees)
+  const dollarsPerPoint = pp * contracts
 
-  const risk = stop * pp * contracts
-  const reward = target * pp * contracts
+  const hasEntry = given(entryPrice)
+  const entry = n(entryPrice)
+  const stop = n(stopPrice)
+  const target = n(targetPrice)
+
+  // Direction comes from the levels themselves: target above entry is a long.
+  let dir = null
+  if (hasEntry && given(targetPrice) && target !== entry) dir = target > entry ? 'long' : 'short'
+  else if (hasEntry && given(stopPrice) && stop !== entry) dir = stop < entry ? 'long' : 'short'
+  const sign = dir === 'short' ? -1 : 1
+
+  const stopPoints = hasEntry && given(stopPrice) ? Math.abs(entry - stop) : 0
+  const targetPoints = hasEntry && given(targetPrice) ? Math.abs(target - entry) : 0
+
+  const risk = stopPoints * dollarsPerPoint
+  const reward = targetPoints * dollarsPerPoint
+
+  // Where the trade actually ended, so P&L and the record agree.
+  let exit = null
+  if (result === 'target' && given(targetPrice)) exit = target
+  else if (result === 'stop' && given(stopPrice)) exit = stop
+  else if (result === 'manual' && given(exitPrice)) exit = n(exitPrice)
 
   let gross = 0
   if (result === 'target') gross = reward
   else if (result === 'stop') gross = -risk
-  else if (result === 'manual') gross = n(manualPnl)
+  else if (result === 'manual' && exit != null && hasEntry) {
+    gross = (exit - entry) * sign * dollarsPerPoint
+  }
 
   const pnl = result ? gross - cost : 0
-  const startBalance = balance === '' || balance == null ? null : n(balance)
+  const startBalance = given(balance) ? n(balance) : null
+
+  // Levels on the wrong side of entry are almost always a typo.
+  let warning = null
+  if (hasEntry && dir && given(stopPrice)) {
+    const stopWrong = dir === 'long' ? stop > entry : stop < entry
+    if (stopWrong) {
+      warning = `For a ${dir}, the stop should be ${dir === 'long' ? 'below' : 'above'} your entry.`
+    } else if (stop === entry) {
+      warning = 'Your stop is at your entry, so there is no risk to size.'
+    }
+  }
+
+  const complete = Boolean(
+    contract && contracts > 0 && hasEntry && result
+    && (result !== 'manual' || exit != null)
+    && (result !== 'target' || given(targetPrice))
+    && (result !== 'stop' || given(stopPrice))
+  )
 
   return {
-    perPoint: pp,
-    risk,
-    reward,
+    perPoint: pp, dollarsPerPoint, dir,
+    stopPoints, targetPoints,
+    risk, reward,
     rr: risk > 0 ? reward / risk : 0,
+    exitPoints: exit != null && hasEntry ? Math.abs(exit - entry) : 0,
+    exit,
     pnl,
-    // what the account looks like before and after, when a balance was given
     startBalance,
     endBalance: startBalance == null ? null : startBalance + pnl,
     riskPct: startBalance > 0 ? risk / startBalance : 0,
-    complete: Boolean(contract && contracts > 0 && result),
+    warning,
+    complete,
   }
 }
 

@@ -3,14 +3,16 @@ import { money, num, pnlClass } from '../lib/format'
 import { Field, Segmented } from './ui'
 
 /**
- * Points in, dollars out. Pick the contract, say where the stop and target
- * were, say how it finished, and this works out the P&L that lands on the
- * calendar — plus what it did to the account balance.
+ * Prices in, dollars out. Give it entry, stop and target as you saw them on
+ * the chart; it works out the direction, the point distances and the P&L that
+ * lands on the calendar.
  */
 export default function TradeSizer({ value, onChange }) {
   const s = sizeTrade(value)
   const set = (k) => (e) => onChange({ ...value, [k]: e.target.value })
   const pick = (k) => (v) => onChange({ ...value, [k]: value[k] === v ? '' : v })
+
+  const pts = (p) => (p ? `${num(p, p % 1 === 0 ? 0 : 2)} pts` : '—')
 
   return (
     <div className="card sizer">
@@ -22,35 +24,51 @@ export default function TradeSizer({ value, onChange }) {
             options={CONTRACTS.map((c) => ({ value: c.id, label: c.name }))}
           />
         </Field>
-        <Field label="Direction">
-          <Segmented
-            value={value.direction}
-            onChange={(v) => onChange({ ...value, direction: v })}
-            options={[{ value: 'long', label: '↑ Long' }, { value: 'short', label: '↓ Short' }]}
-          />
+        <Field label="Contracts">
+          <input type="number" step="1" min="0" value={value.qty} onChange={set('qty')} />
         </Field>
       </div>
 
       {value.contract && (
-        <div className="tiny faint" style={{ marginTop: -4 }}>
+        <div className="tiny faint" style={{ marginTop: -2 }}>
           1 {value.contract} = {money(s.perPoint, { decimals: 0 })} per point
-          {Number(value.qty) > 1 && <> · {value.qty} contracts = {money(s.perPoint * Number(value.qty), { decimals: 0 })} per point</>}
+          {Number(value.qty) > 1 && (
+            <> · {value.qty} contracts = <strong>{money(s.dollarsPerPoint, { decimals: 0 })} per point</strong></>
+          )}
         </div>
       )}
 
       <div className="grid grid-3 mt">
-        <Field label="Contracts">
-          <input type="number" step="1" min="0" value={value.qty} onChange={set('qty')} />
+        <Field label="Entry price">
+          <input type="number" step="any" value={value.entryPrice}
+                 onChange={set('entryPrice')} placeholder="20000" />
         </Field>
-        <Field label="Stop loss (points)">
-          <input type="number" step="any" min="0" value={value.stopPoints}
-                 onChange={set('stopPoints')} placeholder="e.g. 20" />
+        <Field label="Stop loss price">
+          <input type="number" step="any" value={value.stopPrice}
+                 onChange={set('stopPrice')} placeholder="19980" />
         </Field>
-        <Field label="Take profit (points)">
-          <input type="number" step="any" min="0" value={value.targetPoints}
-                 onChange={set('targetPoints')} placeholder="e.g. 60" />
+        <Field label="Take profit price">
+          <input type="number" step="any" value={value.targetPrice}
+                 onChange={set('targetPrice')} placeholder="20060" />
         </Field>
       </div>
+
+      {/* what the prices imply, before any outcome is chosen */}
+      {(s.stopPoints > 0 || s.targetPoints > 0) && (
+        <div className="row-wrap tiny" style={{ gap: 7, marginTop: 9 }}>
+          {s.dir && (
+            <span className={`chip dir-${s.dir}`}>
+              {s.dir === 'long' ? '↑ Long' : '↓ Short'}
+            </span>
+          )}
+          <span className="chip">Stop {pts(s.stopPoints)}</span>
+          <span className="chip">Target {pts(s.targetPoints)}</span>
+          {s.rr > 0 && <span className="chip">{num(s.rr)}R</span>}
+          <span className="faint">worked out from your prices</span>
+        </div>
+      )}
+
+      {s.warning && <div className="alert error" style={{ marginTop: 9 }}>{s.warning}</div>}
 
       <div className="grid grid-2 mt">
         <Field label="How did it finish?">
@@ -62,36 +80,35 @@ export default function TradeSizer({ value, onChange }) {
         </Field>
       </div>
 
-      {value.result === 'manual' && (
-        <div className="grid grid-2 mt">
-          <Field label="Actual P&L (− for a loss)">
-            <input type="number" step="any" value={value.manualPnl} onChange={set('manualPnl')} />
+      <div className="grid grid-2 mt">
+        {value.result === 'manual' ? (
+          <Field label="Price you actually got out at">
+            <input type="number" step="any" value={value.exitPrice}
+                   onChange={set('exitPrice')} placeholder="20015" />
           </Field>
-          <Field label="Fees / commissions">
-            <input type="number" step="any" value={value.fees} onChange={set('fees')} />
-          </Field>
-        </div>
-      )}
-      {value.result && value.result !== 'manual' && (
-        <div className="grid grid-2 mt">
-          <Field label="Fees / commissions">
-            <input type="number" step="any" value={value.fees} onChange={set('fees')} />
-          </Field>
-          <div />
-        </div>
-      )}
+        ) : <div />}
+        <Field label="Fees / commissions">
+          <input type="number" step="any" value={value.fees} onChange={set('fees')} />
+        </Field>
+      </div>
 
       {/* ---- the maths, live ---- */}
       <div className="sizer-out">
         <div className="sizer-tile">
           <div className="k">Risk</div>
           <div className="v neg">{s.risk ? `−${money(s.risk)}` : '—'}</div>
-          {s.riskPct > 0 && <div className="s">{(s.riskPct * 100).toFixed(2)}% of account</div>}
+          <div className="s">
+            {s.stopPoints > 0 ? pts(s.stopPoints) : 'needs entry + stop'}
+            {s.riskPct > 0 && ` · ${(s.riskPct * 100).toFixed(2)}% of account`}
+          </div>
         </div>
         <div className="sizer-tile">
           <div className="k">Reward</div>
           <div className="v pos">{s.reward ? `+${money(s.reward)}` : '—'}</div>
-          {s.rr > 0 && <div className="s">{num(s.rr)}R</div>}
+          <div className="s">
+            {s.targetPoints > 0 ? pts(s.targetPoints) : 'needs entry + target'}
+            {s.rr > 0 && ` · ${num(s.rr)}R`}
+          </div>
         </div>
         <div className="sizer-tile wide">
           <div className="k">Result</div>
@@ -99,17 +116,19 @@ export default function TradeSizer({ value, onChange }) {
             {s.complete ? money(s.pnl, { sign: true }) : '—'}
           </div>
           <div className="s">
-            {s.endBalance != null && s.complete
+            {s.complete && s.endBalance != null
               ? <>{money(s.startBalance)} → <strong>{money(s.endBalance)}</strong></>
-              : 'goes straight onto the calendar'}
+              : s.complete
+                ? <>out at {s.exit} · {pts(s.exitPoints)} · goes on the calendar</>
+                : 'goes straight onto the calendar'}
           </div>
         </div>
       </div>
 
       {!s.complete && (
         <div className="tiny faint" style={{ marginTop: 9 }}>
-          Pick a contract, the number of contracts and how it finished, and the P&L is
-          worked out for you and added to the calendar on that date.
+          Give it the contract, your entry price and how the trade finished, and the
+          points and P&L are worked out for you and added to the calendar on that date.
         </div>
       )}
     </div>
