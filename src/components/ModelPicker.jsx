@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Field, Alert } from './ui'
 
 /**
- * Pick the model you traded, then tick off its confluences. Creating a model
- * is inline — a name plus the list of things you wait for before entering —
- * because you should never have to leave the entry to add one.
+ * Pick the model you traded, then tick off its steps in order. Creating a
+ * model is inline — a name plus the steps you follow — because you should
+ * never have to leave the entry to add one.
  */
 export default function ModelPicker({
   models, modelId, onPickModel, checked, onToggleCheck, createModel,
@@ -73,7 +73,7 @@ export default function ModelPicker({
               placeholder="Fade the first push after the open into the prior day's level"
             />
           </Field>
-          <Field label="Confluences — everything you wait for before entering">
+          <Field label="Steps — what you do, in order">
             <div className="col" style={{ gap: 7 }}>
               {labels.map((l, i) => (
                 <div className="row" key={i} style={{ gap: 8 }}>
@@ -82,10 +82,10 @@ export default function ModelPicker({
                     value={l}
                     onChange={(e) => setLabel(i, e.target.value)}
                     placeholder={
-                      i === 0 ? 'Swept the overnight high'
-                      : i === 1 ? 'Displacement on the 1-minute'
-                      : i === 2 ? 'Retrace into the fair value gap'
-                      : 'Another confluence…'
+                      i === 0 ? 'First, I wait for liquidity to be taken'
+                      : i === 1 ? 'Then I look for a BOS or IFVG'
+                      : i === 2 ? 'Then I wait for the FVG to be retested'
+                      : `Step ${i + 1}…`
                     }
                   />
                   {labels.length > 1 && (
@@ -144,7 +144,7 @@ export default function ModelPicker({
 
       {model && checks.length === 0 && (
         <div className="tiny faint">
-          This model has no confluences listed. Add them in Settings → Models.
+          This model has no steps listed. Add them in Settings → Models.
         </div>
       )}
 
@@ -152,7 +152,7 @@ export default function ModelPicker({
         <div className="confl">
           <div className="row tiny" style={{ marginBottom: 8 }}>
             <span className="faint" style={{ fontWeight: 700, letterSpacing: '0.07em' }}>
-              DID YOU WAIT FOR ALL OF THEM?
+              DID YOU FOLLOW EVERY STEP?
             </span>
             <div className="spacer" />
             <span className={all ? 'pos' : 'neg'} style={{ fontWeight: 700 }}>
@@ -161,7 +161,7 @@ export default function ModelPicker({
           </div>
 
           <div className="col" style={{ gap: 7 }}>
-            {checks.map((c) => {
+            {checks.map((c, i) => {
               const on = checked.includes(c.id)
               return (
                 <div
@@ -176,6 +176,7 @@ export default function ModelPicker({
                   }
                 >
                   <span className="box">✓</span>
+                  <span className="step-n">{i + 1}</span>
                   <span className="lbl grow">{c.label}</span>
                 </div>
               )
@@ -184,8 +185,8 @@ export default function ModelPicker({
 
           <div className={`alert ${all ? 'ok' : 'error'}`} style={{ marginTop: 10 }}>
             {all
-              ? 'Every confluence confirmed. This was your setup.'
-              : `${checks.length - done} confluence${checks.length - done === 1 ? '' : 's'} missing — this was not your model.`}
+              ? 'Every step followed. This was your model.'
+              : `${checks.length - done} step${checks.length - done === 1 ? '' : 's'} skipped — this was not your model.`}
           </div>
         </div>
       )}

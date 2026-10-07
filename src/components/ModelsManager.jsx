@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useModels } from '../lib/hooks'
 import { Card, Empty, Loading, DeleteButton } from './ui'
 
-/** Edit the models and confluence lists created while journalling. */
+/** Edit the models and their step lists created while journalling. */
 export default function ModelsManager() {
   const { user } = useAuth()
   const { models, loading, reload, deleteModel } = useModels()
@@ -40,7 +40,7 @@ export default function ModelsManager() {
         <Empty
           icon="◈"
           title="No models yet"
-          hint="Create one while writing a journal entry — name it and list the confluences you wait for."
+          hint="Create one while writing a journal entry — name it and list the steps you follow."
         />
       ) : (
         <div className="col" style={{ gap: 14 }}>
@@ -65,14 +65,14 @@ export default function ModelsManager() {
                   </div>
                 ))}
                 {m.checks.length === 0 && (
-                  <div className="tiny faint">No confluences yet.</div>
+                  <div className="tiny faint">No steps yet.</div>
                 )}
               </div>
 
               <div className="row mt" style={{ gap: 8 }}>
                 <input
                   value={drafts[m.id] || ''}
-                  placeholder="Add a confluence…"
+                  placeholder="Add a step…"
                   onChange={(e) => setDrafts((d) => ({ ...d, [m.id]: e.target.value }))}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCheck(m) } }}
                 />

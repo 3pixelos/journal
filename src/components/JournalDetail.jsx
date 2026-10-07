@@ -130,17 +130,18 @@ export default function JournalDetail({
                 <span className="faint">·</span>
                 <span className={`tiny ${ticked.length === model.checks.length ? 'pos' : 'neg'}`}
                       style={{ fontWeight: 700 }}>
-                  {ticked.length} of {model.checks.length} confluences
+                  {ticked.length} of {model.checks.length} steps
                 </span>
               </>
             )}
           </div>
           {model.note && <div className="tiny faint" style={{ marginBottom: 8 }}>{model.note}</div>}
-          {model.checks.map((c) => {
+          {model.checks.map((c, i) => {
             const on = ticked.includes(c.id)
             return (
               <div className={`mr-check ${on ? 'on' : 'off'}`} key={c.id}>
                 <span className="tick">✓</span>
+                <span className="step-n">{i + 1}</span>
                 <span>{c.label}</span>
               </div>
             )

@@ -971,7 +971,7 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 }
 .jsec-head h3 { font-size: 15px; }
 
-/* ---- confluence block ---- */
+/* ---- model steps block ---- */
 .confl {
   border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--bg-soft); padding: 12px 13px;
@@ -1064,10 +1064,20 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   .jsec { padding: 13px 0; }
 }
 
-/* A ticked confluence is a confirmation, not a crossed-off chore — keep the
-   label legible rather than struck through. */
+/* A ticked step is a confirmation, not a crossed-off chore — keep the label
+   legible rather than struck through. */
 .confl .checkrow.done .lbl {
   text-decoration: none;
   color: var(--text);
   font-weight: 600;
 }
+
+/* Step numbers, so a model reads as an ordered routine rather than a set. */
+.step-n {
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 5px; flex: 0 0 auto;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+  display: inline-grid; place-items: center;
+  font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.checkrow.done .step-n { background: var(--pos); border-color: var(--pos); color: #04140c; }
+.mr-check.on .step-n { background: var(--pos); border-color: var(--pos); color: #04140c; }

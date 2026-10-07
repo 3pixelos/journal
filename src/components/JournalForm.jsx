@@ -190,7 +190,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
         row = data
       }
 
-      // --- 3. tags, confluences, screenshots ---------------------------
+      // --- 3. tags, steps, screenshots ---------------------------------
       await syncTags({ table: 'journal_tags', column: 'journal_entry_id', id: row.id, tagIds })
 
       const wanted = model ? checked.filter((id) => model.checks.some((c) => c.id === id)) : []
@@ -246,7 +246,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
         </div>
 
         <Section n="1" title="Which model?"
-                 hint="The setup you were trading, and the confluences it needs.">
+                 hint="The setup you were trading, and the steps it takes.">
           <ModelPicker
             models={models}
             modelId={form.model_id}
@@ -343,7 +343,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
           </div>
           <div className="tiny faint">
             {form.is_shared
-              ? 'Everyone signed in can read the writing, model, confluences, tags, charts and win/loss label. Your P&L, size, balance and prices stay yours.'
+              ? 'Everyone signed in can read the writing, model, steps, tags, charts and win/loss label. Your P&L, size, balance and prices stay yours.'
               : 'Only you can see this entry.'}
           </div>
         </Section>

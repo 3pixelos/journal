@@ -102,7 +102,7 @@ export function useLatest(v) {
   return ref
 }
 
-/** The signed-in user's trading models, each with its confluence checks. */
+/** The signed-in user's trading models, each with its ordered steps. */
 export function useModels() {
   const { user } = useAuth()
   const [models, setModels] = useState([])
@@ -124,7 +124,7 @@ export function useModels() {
 
   useEffect(() => { load() }, [load])
 
-  /** Create a model and its confluence list in one go. */
+  /** Create a model and its list of steps in one go. */
   const createModel = useCallback(async (name, labels, note) => {
     const clean = name.trim()
     if (!clean) throw new Error('Give the model a name.')

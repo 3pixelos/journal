@@ -67,7 +67,7 @@ export function sizeTrade({
 
 export const EXECUTIONS = [
   { value: 'followed', label: 'Followed the plan', tone: 'pos',
-    hint: 'Waited for every confluence and took it exactly as planned.' },
+    hint: 'Followed every step and took it exactly as planned.' },
   { value: 'early', label: 'Entered early', tone: 'neg',
     hint: 'Jumped in before the setup completed.' },
   { value: 'late', label: 'Entered late', tone: 'neg',
