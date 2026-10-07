@@ -959,3 +959,115 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   .welcome h1, .welcome-line { animation: none; }
   .welcome-line { width: 120px; }
 }
+
+/* ===== journal form sections ======================================== */
+.jsec { padding: 16px 0; border-top: 1px solid var(--line-soft); }
+.jsec:first-of-type { border-top: none; padding-top: 6px; }
+.jsec-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.jsec-n {
+  width: 21px; height: 21px; border-radius: 6px; flex: 0 0 auto; margin-top: 1px;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+  display: grid; place-items: center; font-size: 11px; font-weight: 800;
+}
+.jsec-head h3 { font-size: 15px; }
+
+/* ---- confluence block ---- */
+.confl {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg-soft); padding: 12px 13px;
+}
+
+/* ---- execution question ---- */
+.exec-grid {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+.exec {
+  all: unset; cursor: pointer;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 11px 13px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line); background: var(--bg-soft);
+  transition: border-color 0.14s, background 0.14s;
+}
+.exec:hover { border-color: var(--faint); }
+.exec-l { font-weight: 650; font-size: 13.5px; color: var(--text); }
+.exec-h { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+.exec.on.pos { background: var(--pos-soft); border-color: var(--pos); }
+.exec.on.pos .exec-l { color: var(--pos); }
+.exec.on.neg { background: var(--neg-soft); border-color: var(--neg); }
+.exec.on.neg .exec-l { color: var(--neg); }
+
+/* ---- sizing calculator ---- */
+.sizer { background: var(--bg-soft); }
+.sizer-out {
+  display: grid; gap: 9px; margin-top: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 1.4fr;
+}
+.sizer-tile {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+}
+.sizer-tile .k {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--faint); font-weight: 700; margin-bottom: 3px;
+}
+.sizer-tile .v {
+  font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.sizer-tile .v.big { font-size: 23px; font-weight: 800; }
+.sizer-tile .s { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ---- screenshots ---- */
+.shots {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 9px; border-radius: var(--radius-sm);
+  border: 1px dashed var(--line); background: var(--bg-soft);
+  transition: border-color 0.14s, background 0.14s;
+}
+.shots.dragging { border-color: var(--pos); background: var(--pos-soft); }
+.shots .thumb-n {
+  position: absolute; left: 4px; bottom: 4px;
+  background: rgba(0, 0, 0, 0.6); color: #fff;
+  font-size: 10px; font-weight: 700; border-radius: 4px; padding: 1px 5px;
+}
+.thumb.add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; color: var(--muted); border-style: dashed; cursor: pointer;
+}
+.thumb.add:hover { color: var(--text); border-color: var(--faint); }
+.thumb.add span:first-child { font-size: 17px; }
+
+/* ---- read-only model block in the detail popup ---- */
+.model-read {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg-soft); padding: 12px 13px;
+}
+.model-read .mr-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.model-read .mr-name { font-weight: 750; }
+.mr-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; padding: 3px 0;
+}
+.mr-check .tick {
+  width: 16px; height: 16px; border-radius: 4px; flex: 0 0 auto;
+  display: grid; place-items: center; font-size: 10px;
+  border: 1.5px solid var(--faint); color: transparent;
+}
+.mr-check.on .tick { background: var(--pos); border-color: var(--pos); color: #fff; }
+.mr-check.off { color: var(--muted); }
+
+@media (max-width: 760px) {
+  .sizer-out { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sizer-tile.wide { grid-column: 1 / -1; }
+  .exec-grid { grid-template-columns: 1fr; }
+  .jsec { padding: 13px 0; }
+}
+
+/* A ticked confluence is a confirmation, not a crossed-off chore — keep the
+   label legible rather than struck through. */
+.confl .checkrow.done .lbl {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+}

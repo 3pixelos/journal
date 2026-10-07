@@ -6,6 +6,7 @@ import { useAccounts, useTags, useTitle } from '../lib/hooks'
 import { money } from '../lib/format'
 import { Card, Field, Alert, DeleteButton, TagChip, Empty } from '../components/ui'
 import Avatar from '../components/Avatar'
+import ModelsManager from '../components/ModelsManager'
 import { AVATARS } from '../lib/avatars'
 import { KINDS } from '../components/TagPicker'
 
@@ -194,6 +195,8 @@ export default function Settings() {
           <button className="btn-primary" disabled={!newAccount.name.trim()}>Add account</button>
         </form>
       </Card>
+
+      <ModelsManager />
 
       <Card title="Tags" action={<button className="btn-sm btn-ghost" onClick={reloadTags}>Refresh</button>}>
         {tags.length === 0 ? (

@@ -101,3 +101,65 @@ export function useLatest(v) {
   ref.current = v
   return ref
 }
+
+/** The signed-in user's trading models, each with its confluence checks. */
+export function useModels() {
+  const { user } = useAuth()
+  const [models, setModels] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    if (!user) return
+    const [{ data: ms }, { data: cs }] = await Promise.all([
+      supabase.from('models').select('*').eq('user_id', user.id)
+        .order('sort_order').order('created_at'),
+      supabase.from('model_checks').select('*').eq('user_id', user.id)
+        .order('sort_order').order('created_at'),
+    ])
+    const byModel = {}
+    for (const c of cs || []) (byModel[c.model_id] ||= []).push(c)
+    setModels((ms || []).map((m) => ({ ...m, checks: byModel[m.id] || [] })))
+    setLoading(false)
+  }, [user])
+
+  useEffect(() => { load() }, [load])
+
+  /** Create a model and its confluence list in one go. */
+  const createModel = useCallback(async (name, labels, note) => {
+    const clean = name.trim()
+    if (!clean) throw new Error('Give the model a name.')
+
+    const { data: model, error } = await supabase
+      .from('models')
+      .insert({ user_id: user.id, name: clean, note: note?.trim() || null })
+      .select()
+      .single()
+    if (error) {
+      throw new Error(
+        error.code === '23505' ? 'You already have a model with that name.' : error.message
+      )
+    }
+
+    const rows = labels
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((label, i) => ({ model_id: model.id, user_id: user.id, label, sort_order: i + 1 }))
+
+    let checks = []
+    if (rows.length) {
+      const { data } = await supabase.from('model_checks').insert(rows).select()
+      checks = data || []
+    }
+
+    const full = { ...model, checks }
+    setModels((prev) => [...prev, full])
+    return full
+  }, [user])
+
+  const deleteModel = useCallback(async (id) => {
+    await supabase.from('models').delete().eq('id', id)
+    setModels((prev) => prev.filter((m) => m.id !== id))
+  }, [])
+
+  return { models, loading, reload: load, createModel, deleteModel }
+}

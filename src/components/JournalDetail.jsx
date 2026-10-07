@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 import { useSignedUrls } from '../lib/hooks'
 import { longDate, relTime, money, pnlClass } from '../lib/format'
+import { getExecution } from '../lib/contracts'
 import { JOURNAL_FIELDS } from './JournalFields'
 import OutcomeBadge, { OUTCOMES } from './OutcomeBadge'
 import Avatar from './Avatar'
@@ -12,9 +14,31 @@ export default function JournalDetail({
   entry, trade, author, tags = [], paths = [], isMine, onClose, onEdit, onMark,
 }) {
   const [zoom, setZoom] = useState(null)
+  const [model, setModel] = useState(null)
+  const [ticked, setTicked] = useState([])
+
+  useEffect(() => {
+    let alive = true
+    setModel(null)
+    setTicked([])
+    if (!entry.model_id) return
+    ;(async () => {
+      const [{ data: m }, { data: mc }, { data: jc }] = await Promise.all([
+        supabase.from('models').select('id, name, note').eq('id', entry.model_id).maybeSingle(),
+        supabase.from('model_checks').select('id, label, sort_order')
+          .eq('model_id', entry.model_id).order('sort_order'),
+        supabase.from('journal_checks').select('check_id').eq('journal_entry_id', entry.id),
+      ])
+      if (!alive) return
+      setModel(m ? { ...m, checks: mc || [] } : null)
+      setTicked((jc || []).map((r) => r.check_id))
+    })()
+    return () => { alive = false }
+  }, [entry.id, entry.model_id])
   const urls = useSignedUrls(paths)
   const written = JOURNAL_FIELDS.filter((f) => String(entry[f.key] || '').trim())
   const name = isMine ? 'You' : (author?.display_name || 'Trader')
+  const exec = getExecution(entry.execution)
 
   return (
     <Modal
@@ -97,7 +121,47 @@ export default function JournalDetail({
         </div>
       )}
 
-      {written.length === 0 && paths.length === 0 ? (
+      {model && (
+        <div className="model-read">
+          <div className="mr-head">
+            <span className="mr-name">{model.name}</span>
+            {model.checks.length > 0 && (
+              <>
+                <span className="faint">·</span>
+                <span className={`tiny ${ticked.length === model.checks.length ? 'pos' : 'neg'}`}
+                      style={{ fontWeight: 700 }}>
+                  {ticked.length} of {model.checks.length} confluences
+                </span>
+              </>
+            )}
+          </div>
+          {model.note && <div className="tiny faint" style={{ marginBottom: 8 }}>{model.note}</div>}
+          {model.checks.map((c) => {
+            const on = ticked.includes(c.id)
+            return (
+              <div className={`mr-check ${on ? 'on' : 'off'}`} key={c.id}>
+                <span className="tick">✓</span>
+                <span>{c.label}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {exec && (
+        <div className={`alert ${exec.tone === 'pos' ? 'ok' : 'error'}`}>
+          <strong>{exec.label}</strong> — {exec.hint}
+        </div>
+      )}
+
+      {entry.execution_notes && (
+        <div className="jsection">
+          <div className="k">What I actually did</div>
+          <div className="v">{entry.execution_notes}</div>
+        </div>
+      )}
+
+      {written.length === 0 && paths.length === 0 && !entry.execution_notes && !model ? (
         <Empty icon="○" title="Nothing written in this entry yet" />
       ) : (
         written.map((f) => (

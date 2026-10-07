@@ -37,6 +37,7 @@ another user's session physically cannot read a row.
    - [`supabase/004_login_with_display_name.sql`](supabase/004_login_with_display_name.sql) — sign in by display name
    - [`supabase/005_period_goals.sql`](supabase/005_period_goals.sql) — daily / weekly / monthly goals
    - [`supabase/006_avatars.sql`](supabase/006_avatars.sql) — pick-your-own avatar
+   - [`supabase/007_models_and_sizing.sql`](supabase/007_models_and_sizing.sql) — models, confluences, contract sizing
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -151,6 +152,15 @@ date range, account, outcome, tag or person; flip between grid and list. Click a
 for the full entry: every screenshot, every written section, and win/loss or
 public/private changed in place. Entries without an explicit outcome take it from the
 linked trade's sign.
+
+**Models** — name a setup and list the confluences it needs. Pick it when journalling
+and the checklist appears, so you record whether you actually waited for all of them
+before entering. Create one inline; edit the lists later in Settings.
+
+**Contract sizing** — choose NQ ($20/point) or MNQ ($2/point), enter the stop and target
+in points, say how it finished, and the entry works out the risk, reward, R-multiple and
+realised P&L, writes the trade, and puts it on the calendar for that date. Give it your
+balance before the trade and it shows what the account became.
 
 **Welcome screen** — "Welcome back, Adam" on a dark gradient for a few seconds after
 each sign-in, then it fades into the app. Once per session, not on every refresh.
