@@ -172,21 +172,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className={`hero-bar ${behind ? 'neg' : ''}`}>
-          <span style={{ width: `${(behind ? lossPct : goalPct) * 100}%` }} />
+        {/* Progress towards the goal, and nothing else. A red day leaves it
+            empty rather than filling with how much has been lost — the loss
+            limit lives in its own tile below. */}
+        <div className="hero-bar">
+          <span style={{ width: `${goalPct * 100}%` }} />
         </div>
         <div className="row tiny faint" style={{ marginTop: 7 }}>
-          <span>
-            {behind
-              ? `${(lossPct * 100).toFixed(0)}% of your max loss used`
-              : `${(goalPct * 100).toFixed(0)}% of goal`}
-          </span>
+          <span>{(goalPct * 100).toFixed(0)}% of goal</span>
           <div className="spacer" />
-          <span>
-            {behind
-              ? `${money(Math.max(maxLoss + s.net, 0))} of room left`
-              : `${money(Math.max(goal - s.net, 0))} to go`}
-          </span>
+          <span>{money(Math.max(goal - s.net, 0))} to go</span>
         </div>
 
         <div className="hero-grid">
@@ -195,6 +190,11 @@ export default function Dashboard() {
             <div className={`v ${lossPct >= 1 ? 'neg' : ''}`}>
               <EditableTarget value={maxLoss} label={`${period} max loss`}
                               onSave={(v) => saveTarget(f.loss, v)} />
+            </div>
+            <div className="s">
+              {s.net < 0
+                ? `${money(-s.net)} used · ${money(Math.max(maxLoss + s.net, 0))} left`
+                : 'none used'}
             </div>
           </div>
           <div className="hero-tile">
