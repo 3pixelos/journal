@@ -351,7 +351,14 @@ export default function JournalForm({
         </Section>
 
         <Section n={isBacktest ? '4' : '5'} title="The notes" hint="Optional, but this is where the pattern shows up.">
-          <JournalFields value={form} onChange={(v) => setForm((f) => ({ ...f, ...v }))} rows={2} />
+          <JournalFields
+            value={form}
+            onChange={(v) => setForm((f) => ({ ...f, ...v }))}
+            rows={2}
+            // nothing was risked, so there is no mental state, no mistake and
+            // nothing to do differently — only what the setup was and why
+            omit={isBacktest ? ['emotions', 'mistakes', 'improvements'] : []}
+          />
           <Field label="Tags">
             <TagPicker tags={tags} value={tagIds} onChange={setTagIds} createTag={createTag} />
           </Field>
@@ -367,11 +374,14 @@ export default function JournalForm({
               <Segmented
                 value={form.outcome}
                 onChange={(v) => setForm((f) => ({ ...f, outcome: f.outcome === v ? '' : v }))}
-                options={[
-                  { value: 'win', label: 'Win' },
-                  { value: 'loss', label: 'Loss' },
-                  { value: 'breakeven', label: 'B/E' },
-                ]}
+                options={isBacktest
+                  // a test either worked or it did not
+                  ? [{ value: 'win', label: 'Win' }, { value: 'loss', label: 'Loss' }]
+                  : [
+                      { value: 'win', label: 'Win' },
+                      { value: 'loss', label: 'Loss' },
+                      { value: 'breakeven', label: 'B/E' },
+                    ]}
               />
             </Field>
             <Field label="Visibility">

@@ -8,11 +8,12 @@ const FIELDS = [
   { key: 'improvements', label: "What I'd do differently", ph: 'One concrete change for next time.' },
 ]
 
-export default function JournalFields({ value, onChange, rows = 3 }) {
+export default function JournalFields({ value, onChange, rows = 3, omit = [] }) {
   const set = (k) => (e) => onChange({ ...value, [k]: e.target.value })
+  const shown = FIELDS.filter((f) => !omit.includes(f.key))
   return (
     <>
-      {FIELDS.map((f) => (
+      {shown.map((f) => (
         <Field key={f.key} label={f.label}>
           <textarea
             rows={rows}

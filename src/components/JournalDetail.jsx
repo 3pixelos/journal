@@ -84,7 +84,9 @@ export default function JournalDetail({
       {isMine && (
         <div className="row-wrap" style={{ gap: 6 }}>
           <span className="tiny faint">Mark as:</span>
-          {OUTCOMES.map((o) => (
+          {OUTCOMES
+            .filter((o) => !(entry.kind === 'backtest' && o.value === 'breakeven'))
+            .map((o) => (
             <span
               key={o.value}
               className={`chip chip-btn ${entry.outcome === o.value ? 'on' : ''}`}
