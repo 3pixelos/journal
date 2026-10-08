@@ -59,6 +59,8 @@ export default function Journal() {
       .order('entry_date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(300)
+    // backtests live on their own page
+    query = query.eq('kind', 'journal')
     query = tab === 'mine' ? query.eq('user_id', user.id) : query.eq('is_shared', true)
 
     const { data } = await query

@@ -39,6 +39,7 @@ another user's session physically cannot read a row.
    - [`supabase/006_avatars.sql`](supabase/006_avatars.sql) — pick-your-own avatar
    - [`supabase/007_models_and_sizing.sql`](supabase/007_models_and_sizing.sql) — models, steps, contract sizing
    - [`supabase/008_trade_prices.sql`](supabase/008_trade_prices.sql) — stop and target as prices
+   - [`supabase/009_backtesting.sql`](supabase/009_backtesting.sql) — backtesting entries
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -164,6 +165,11 @@ fall out of those, and saying how it finished gives the realised P&L, writes the
 and puts it on the calendar for that date. A manual close is priced off wherever you
 actually got out. Give it the balance before and it shows what the account became.
 
+**Backtesting** — the same record as a journal entry with the money taken out: a model,
+the steps you followed, how it resolved, charts and notes. No contract, no prices, no
+P&L, and nothing reaches the calendar. The page leads with win rate per model, and
+splits each one by whether every step was actually followed.
+
 **Welcome screen** — "Welcome back, Adam" on a dark gradient for a few seconds after
 each sign-in, then it fades into the app. Once per session, not on every refresh.
 
@@ -190,7 +196,7 @@ src/lib/api.js           Tag/attachment syncing and cascade-aware deletes
 src/lib/storage.js       Screenshot upload + signed URLs for the private bucket
 src/context/AuthContext  Session, profile and settings
 src/components/          Reusable UI, trade form, journal form, tag picker, uploader
-src/pages/               Dashboard, Trades, Journal, Reminders, Settings
+src/pages/               Dashboard, Trades, Journal, Backtesting, Reminders, Settings
 src/context/Presence     Realtime "who's online" + last-seen heartbeat
 ```
 

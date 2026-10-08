@@ -135,6 +135,7 @@ export function pageLabel(path) {
     '/': 'Dashboard',
     '/trades': 'Trades',
     '/journal': 'Journal',
+    '/backtesting': 'Backtesting',
     '/reminders': 'Reminders',
     '/settings': 'Settings',
   }

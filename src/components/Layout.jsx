@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext'
 import { PresenceBar, SidebarPresence } from './Presence'
 import Avatar from './Avatar'
 
+// `short` keeps the phone bar legible — six full labels do not fit at 375px.
 const LINKS = [
-  { to: '/', label: 'Dashboard', ico: '◧', end: true },
-  { to: '/trades', label: 'Trades', ico: '▤' },
-  { to: '/journal', label: 'Journal', ico: '✎' },
-  { to: '/reminders', label: 'Reminders', ico: '◆' },
+  { to: '/', label: 'Dashboard', short: 'Home', ico: '◧', end: true },
+  { to: '/trades', label: 'Trades', short: 'Trades', ico: '▤' },
+  { to: '/journal', label: 'Journal', short: 'Journal', ico: '✎' },
+  { to: '/backtesting', label: 'Backtesting', short: 'Tests', ico: '⌁' },
+  { to: '/reminders', label: 'Reminders', short: 'Rules', ico: '◆' },
 ]
 
 function applyTheme(next) {
@@ -89,7 +91,7 @@ export default function Layout() {
         {LINKS.map((l) => (
           <NavLink key={l.to} to={l.to} end={l.end} className="navlink">
             <span className="ico">{l.ico}</span>
-            {l.label}
+            {l.short || l.label}
           </NavLink>
         ))}
         <NavLink to="/settings" className="navlink">

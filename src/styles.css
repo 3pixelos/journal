@@ -1169,3 +1169,12 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   .cal-cell, .cal-total { padding: 4px 4px; }
   .cal-cell .cal-pnl, .cal-total .cal-pnl { font-size: 11px; }
 }
+
+/* Six destinations in the phone bar: tighten it so nothing truncates. */
+@media (max-width: 760px) {
+  .mobile-nav .navlink { font-size: 9.5px; padding: 6px 1px; gap: 2px; }
+  .mobile-nav .navlink .ico { font-size: 16px; }
+}
+@media (max-width: 380px) {
+  .mobile-nav .navlink { font-size: 9px; }
+}

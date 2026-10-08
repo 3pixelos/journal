@@ -44,7 +44,9 @@ function Section({ n, title, hint, children }) {
   )
 }
 
-export default function JournalForm({ entry, trades = [], onClose, onSaved, onDeleted }) {
+export default function JournalForm({
+  entry, trades = [], kind = 'journal', onClose, onSaved, onDeleted,
+}) {
   const { user } = useAuth()
   const { tags, createTag } = useTags()
   const { models, createModel } = useModels()
@@ -58,6 +60,9 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
   const [error, setError] = useState('')
 
   const editing = Boolean(entry?.id)
+  // A backtest is the same record without the money: no contract, no prices,
+  // no P&L, so nothing to put on the calendar.
+  const isBacktest = (entry?.kind || kind) === 'backtest'
 
   // ---- hydrate an existing entry, and the trade behind it -------------
   useEffect(() => {
@@ -130,7 +135,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
     try {
       // --- 1. the trade, so the P&L reaches the calendar ---------------
       let tradeId = form.trade_id || null
-      if (sized.complete) {
+      if (!isBacktest && sized.complete) {
         const numOrNull = (v) => (v === '' || v == null ? null : Number(v))
         const tradePayload = {
           user_id: user.id,
@@ -167,8 +172,10 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
       // --- 2. the entry ------------------------------------------------
       const payload = {
         user_id: user.id,
+        kind: isBacktest ? 'backtest' : 'journal',
         title: form.title.trim() || (size.contract
           ? `${size.contract} · ${model?.name || form.entry_date}`
+          : isBacktest ? `${model?.name || 'Backtest'} · ${form.entry_date}`
           : `Journal · ${form.entry_date}`),
         entry_date: form.entry_date,
         setup: form.setup || null,
@@ -181,7 +188,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
         is_shared: form.is_shared,
         outcome: form.outcome || null,
         model_id: form.model_id || null,
-        trade_id: tradeId,
+        trade_id: isBacktest ? null : tradeId,
       }
 
       let row
@@ -225,7 +232,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
 
   return (
     <Modal
-      title={editing ? 'Edit journal entry' : 'New journal entry'}
+      title={`${editing ? 'Edit' : 'New'} ${isBacktest ? 'backtest' : 'journal entry'}`}
       onClose={onClose}
       wide
       footer={
@@ -234,7 +241,10 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
           <div className="spacer" />
           <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn-go" onClick={save} disabled={busy}>
-            {busy ? 'Saving…' : sized.complete ? 'Save & add to calendar' : 'Save entry'}
+            {busy ? 'Saving…'
+              : isBacktest ? 'Save backtest'
+              : sized.complete ? 'Save & add to calendar'
+              : 'Save entry'}
           </button>
         </>
       }
@@ -245,7 +255,9 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
         <div className="grid grid-2">
           <Field label="Title">
             <input value={form.title} onChange={set('title')}
-                   placeholder={size.contract ? `${size.contract} · ${model?.name || 'session'}` : 'Monday review'} />
+                   placeholder={isBacktest
+                     ? (model?.name ? `${model.name} — test` : 'Backtest')
+                     : size.contract ? `${size.contract} · ${model?.name || 'session'}` : 'Monday review'} />
           </Field>
           <Field label="Date">
             <input type="date" value={form.entry_date} onChange={set('entry_date')} />
@@ -264,25 +276,29 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
           />
         </Section>
 
-        <Section n="2" title="The trade"
-                 hint="Enter the prices you saw — the points and dollars are worked out for you.">
-          <TradeSizer value={size} onChange={setSize} />
-          {!sized.complete && linkable.length > 0 && (
-            <Field label="…or link an existing trade instead">
-              <select value={form.trade_id} onChange={set('trade_id')}>
-                <option value="">— none —</option>
-                {linkable.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.trade_date} · {t.symbol} · {t.direction}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
-        </Section>
+        {!isBacktest && (
+          <Section n="2" title="The trade"
+                   hint="Enter the prices you saw — the points and dollars are worked out for you.">
+            <TradeSizer value={size} onChange={setSize} />
+            {!sized.complete && linkable.length > 0 && (
+              <Field label="…or link an existing trade instead">
+                <select value={form.trade_id} onChange={set('trade_id')}>
+                  <option value="">— none —</option>
+                  {linkable.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.trade_date} · {t.symbol} · {t.direction}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+          </Section>
+        )}
 
-        <Section n="3" title="Did you follow your strategy?"
-                 hint="Be honest here — this is the number that actually changes your trading.">
+        <Section n={isBacktest ? '2' : '3'} title="Did you follow your strategy?"
+                 hint={isBacktest
+                   ? 'Did the setup play out the way the model says it should?'
+                   : 'Be honest here — this is the number that actually changes your trading.'}>
           <div className="exec-grid">
             {EXECUTIONS.map((x) => (
               <button
@@ -300,7 +316,7 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
           </div>
         </Section>
 
-        <Section n="4" title="What did you actually do?"
+        <Section n={isBacktest ? '3' : '4'} title="What did you actually do?"
                  hint="The full play-by-play, start to finish. Write it while it's fresh.">
           <textarea
             rows={6}
@@ -313,18 +329,18 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
           />
         </Section>
 
-        <Section n="5" title="The notes" hint="Optional, but this is where the pattern shows up.">
+        <Section n={isBacktest ? '4' : '5'} title="The notes" hint="Optional, but this is where the pattern shows up.">
           <JournalFields value={form} onChange={(v) => setForm((f) => ({ ...f, ...v }))} rows={2} />
           <Field label="Tags">
             <TagPicker tags={tags} value={tagIds} onChange={setTagIds} createTag={createTag} />
           </Field>
         </Section>
 
-        <Section n="6" title="Charts" hint="Entry, exit, whatever you want to look back at.">
+        <Section n={isBacktest ? '5' : '6'} title="Charts" hint="Entry, exit, whatever you want to look back at.">
           <ScreenshotUploader paths={paths} onChange={setPaths} />
         </Section>
 
-        <Section n="7" title="Outcome & visibility">
+        <Section n={isBacktest ? '6' : '7'} title="Outcome & visibility">
           <div className="grid grid-2">
             <Field label="How did it go?">
               <Segmented
@@ -350,7 +366,9 @@ export default function JournalForm({ entry, trades = [], onClose, onSaved, onDe
           </div>
           <div className="tiny faint">
             {form.is_shared
-              ? 'Everyone signed in can read the writing, model, steps, tags, charts and win/loss label. Your P&L, size, balance and prices stay yours.'
+              ? (isBacktest
+                  ? 'Everyone signed in can read this backtest — the model, steps, writing, charts and result.'
+                  : 'Everyone signed in can read the writing, model, steps, tags, charts and win/loss label. Your P&L, size, balance and prices stay yours.')
               : 'Only you can see this entry.'}
           </div>
         </Section>
