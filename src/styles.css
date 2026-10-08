@@ -1178,3 +1178,8 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 @media (max-width: 380px) {
   .mobile-nav .navlink { font-size: 9px; }
 }
+
+/* Step rows in the models manager: the label takes the room, the controls
+   stay put rather than shrinking the input. */
+.step-edit input { min-width: 0; }
+.step-edit button { flex: 0 0 auto; }
