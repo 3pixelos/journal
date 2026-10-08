@@ -41,6 +41,7 @@ another user's session physically cannot read a row.
    - [`supabase/008_trade_prices.sql`](supabase/008_trade_prices.sql) — stop and target as prices
    - [`supabase/009_backtesting.sql`](supabase/009_backtesting.sql) — backtesting entries
    - [`supabase/011_account_currency.sql`](supabase/011_account_currency.sql) — account currency and USD conversion
+   - [`supabase/012_restate_currency.sql`](supabase/012_restate_currency.sql) — restate history when the currency changes
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -176,6 +177,11 @@ anything else sees a converted figure arrive. Set your currency and a USD rate i
 Settings and every trade converts: the sizer shows both ($150.50 → £114.64), P&L is
 stored in your account currency so goals and limits mean something, and each trade keeps
 the rate it was booked at so history never re-prices.
+
+Switching currency later restates everything rather than relabelling it: trades are
+recomputed from their stored dollar figures, and goals, limits and balances scale by the
+change in rate. Because the dollar figure is never touched, switching back returns the
+exact original numbers.
 
 **Welcome screen** — "Welcome back, Adam" on a dark gradient for a few seconds after
 each sign-in, then it fades into the app. Once per session, not on every refresh.

@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useAccounts, useTags, useTitle } from '../lib/hooks'
-import { money, CURRENCIES } from '../lib/format'
+import { money } from '../lib/format'
 import { Card, Field, Alert, DeleteButton, TagChip, Empty } from '../components/ui'
 import Avatar from '../components/Avatar'
 import ModelsManager from '../components/ModelsManager'
+import CurrencySwitch from '../components/CurrencySwitch'
 import { AVATARS } from '../lib/avatars'
 import { KINDS } from '../components/TagPicker'
 
@@ -141,41 +142,11 @@ export default function Settings() {
       </Card>
 
       <Card title="Account currency">
-        <div className="grid grid-2">
-          <Field label="My account is in">
-            <select
-              value={settings?.currency || 'USD'}
-              onChange={async (e) => {
-                const { data } = await supabase.from('settings')
-                  .update({ currency: e.target.value }).eq('user_id', user.id).select().single()
-                if (data) { setSettings(data); flash('Currency saved.') }
-              }}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="USD → account rate">
-            <input
-              type="number" step="any"
-              defaultValue={settings?.fx_rate ?? 1}
-              disabled={(settings?.currency || 'USD') === 'USD'}
-              onBlur={async (e) => {
-                const v = Number(e.target.value)
-                if (!Number.isFinite(v) || v <= 0 || v === Number(settings?.fx_rate)) return
-                const { data } = await supabase.from('settings')
-                  .update({ fx_rate: v }).eq('user_id', user.id).select().single()
-                if (data) { setSettings(data); flash('Rate saved.') }
-              }}
-            />
-          </Field>
-        </div>
+        <CurrencySwitch />
         <div className="small faint mt">
-          NQ and MNQ settle in US dollars. If your account is not, this rate converts
-          each trade — how many {settings?.currency || 'USD'} one dollar is worth, so
-          GBP sits around 0.76. It is the starting point for a new entry and can be
-          changed per trade, and every trade keeps the rate it was booked at.
+          The rate here is the starting point for a new entry; each trade can override
+          it and keeps whatever rate it was booked at, so history never re-prices on
+          its own.
         </div>
       </Card>
 
