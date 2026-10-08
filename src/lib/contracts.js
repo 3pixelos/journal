@@ -39,12 +39,14 @@ const given = (v) => v !== '' && v !== null && v !== undefined && Number.isFinit
  */
 export function sizeTrade({
   contract, qty, entryPrice, stopPrice, targetPrice, exitPrice,
-  result, fees, balance, actualPnl,
+  result, fees, balance, actualPnl, fxRate,
 }) {
   const pp = perPoint(contract)
   const contracts = Math.max(n(qty), 0)
   const cost = n(fees)
   const dollarsPerPoint = pp * contracts
+  // Account-currency units per 1 USD. 1 for a dollar account.
+  const fx = given(fxRate) && n(fxRate) > 0 ? n(fxRate) : 1
 
   const hasEntry = given(entryPrice)
   const entry = n(entryPrice)
@@ -60,8 +62,11 @@ export function sizeTrade({
   const stopPoints = hasEntry && given(stopPrice) ? Math.abs(entry - stop) : 0
   const targetPoints = hasEntry && given(targetPrice) ? Math.abs(target - entry) : 0
 
-  const risk = stopPoints * dollarsPerPoint
-  const reward = targetPoints * dollarsPerPoint
+  // Contract figures are USD; the account sees them converted.
+  const riskUsd = stopPoints * dollarsPerPoint
+  const rewardUsd = targetPoints * dollarsPerPoint
+  const risk = riskUsd * fx
+  const reward = rewardUsd * fx
 
   // Where the trade actually ended. The level you aimed at is only the
   // default — a fill is almost never exactly on it, and the P&L has to
@@ -77,14 +82,19 @@ export function sizeTrade({
     ? (exit - entry) * sign * dollarsPerPoint
     : 0
 
-  // What the plan implies: a clean fill at the level, less fees.
-  const plannedPnl = result ? gross - cost : 0
+  // Fees are charged in account currency, so convert first then deduct.
+  const grossAccount = gross * fx
+
+  // What the plan implies: the fill you got, less fees.
+  const plannedPnlUsd = result ? gross - cost / (fx || 1) : 0
+  const plannedPnl = result ? grossAccount - cost : 0
 
   // What the broker actually paid. Slippage, partial fills and commissions
   // the fee box missed all live in the gap between the two, so when this is
   // given it wins — the calendar should show real money, not theory.
   const hasActual = given(actualPnl)
   const pnl = hasActual ? n(actualPnl) : plannedPnl
+  const pnlUsd = hasActual ? (fx ? n(actualPnl) / fx : n(actualPnl)) : plannedPnlUsd
   const startBalance = given(balance) ? n(balance) : null
 
   // Levels on the wrong side of entry are almost always a typo.
@@ -106,9 +116,13 @@ export function sizeTrade({
   const complete = Boolean(contract && contracts > 0 && (hasActual || levelsOk))
 
   return {
-    perPoint: pp, dollarsPerPoint, dir,
+    perPoint: pp, dollarsPerPoint, dir, fx,
     stopPoints, targetPoints,
+    // account currency
     risk, reward,
+    // contract currency (USD), for showing alongside
+    riskUsd, rewardUsd, pnlUsd, grossUsd: gross,
+    converted: fx !== 1,
     rr: risk > 0 ? reward / risk : 0,
     exitPoints: exit != null && hasEntry ? Math.abs(exit - entry) : 0,
     // true when the fill landed somewhere other than the level aimed at

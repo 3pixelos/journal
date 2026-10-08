@@ -26,7 +26,7 @@ const BLANK = {
 const BLANK_SIZE = {
   contract: '', qty: '1',
   entryPrice: '', stopPrice: '', targetPrice: '', exitPrice: '',
-  result: '', fees: '0', balance: '', actualPnl: '',
+  result: '', fees: '0', balance: '', actualPnl: '', fxRate: '',
 }
 
 function Section({ n, title, hint, children }) {
@@ -47,12 +47,19 @@ function Section({ n, title, hint, children }) {
 export default function JournalForm({
   entry, trades = [], kind = 'journal', onClose, onSaved, onDeleted,
 }) {
-  const { user } = useAuth()
+  const { user, settings } = useAuth()
   const { tags, createTag } = useTags()
   const { models, createModel } = useModels()
 
   const [form, setForm] = useState(BLANK)
   const [size, setSize] = useState(BLANK_SIZE)
+
+  // A new entry starts on the account's saved rate; an existing one keeps
+  // whatever rate it was booked at.
+  useEffect(() => {
+    if (entry?.id || !settings) return
+    setSize((z) => (z.fxRate ? z : { ...z, fxRate: String(settings.fx_rate ?? 1) }))
+  }, [entry?.id, settings])
   const [checked, setChecked] = useState([])
   const [tagIds, setTagIds] = useState([])
   const [paths, setPaths] = useState([])
@@ -107,6 +114,7 @@ export default function JournalForm({
             fees: String(t.fees ?? '0'),
             balance: t.account_balance ?? '',
             actualPnl: '',
+            fxRate: String(t.fx_rate ?? 1),
           }
           // The stored P&L is the truth. If it does not match what the levels
           // imply, it was overridden — put it back in the override box so
@@ -163,7 +171,11 @@ export default function JournalForm({
           target_points: sized.targetPoints || null,
           result: size.result,
           fees: Number(size.fees) || 0,
+          // pnl is account currency — goals, limits and the calendar are all
+          // measured in it; pnl_usd keeps the contract figure alongside
           pnl: Number(sized.pnl.toFixed(2)),
+          pnl_usd: Number(sized.pnlUsd.toFixed(2)),
+          fx_rate: sized.fx,
           account_balance: numOrNull(size.balance),
           trade_date: form.entry_date,
         }

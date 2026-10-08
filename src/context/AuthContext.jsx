@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { setDisplayCurrency } from '../lib/format'
 import { resetWelcome } from '../components/Welcome'
 
 const AuthCtx = createContext(null)
@@ -68,6 +69,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     loadMeta()
   }, [loadMeta])
+
+  // Every money() in the app formats in the account's currency.
+  useEffect(() => { setDisplayCurrency(settings?.currency) }, [settings?.currency])
 
   const value = {
     session,

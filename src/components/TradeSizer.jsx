@@ -1,5 +1,6 @@
 import { CONTRACTS, RESULTS, sizeTrade } from '../lib/contracts'
-import { money, num, pnlClass } from '../lib/format'
+import { money, usd, num, pnlClass, getDisplayCurrency } from '../lib/format'
+import { useAuth } from '../context/AuthContext'
 import { Field, Segmented } from './ui'
 
 /**
@@ -8,6 +9,8 @@ import { Field, Segmented } from './ui'
  * lands on the calendar.
  */
 export default function TradeSizer({ value, onChange }) {
+  const { settings } = useAuth()
+  const ccy = settings?.currency || getDisplayCurrency()
   const s = sizeTrade(value)
   const set = (k) => (e) => onChange({ ...value, [k]: e.target.value })
   const pick = (k) => (v) => onChange({ ...value, [k]: value[k] === v ? '' : v })
@@ -31,10 +34,11 @@ export default function TradeSizer({ value, onChange }) {
 
       {value.contract && (
         <div className="tiny faint" style={{ marginTop: -2 }}>
-          1 {value.contract} = {money(s.perPoint, { decimals: 0 })} per point
+          1 {value.contract} = {usd(s.perPoint, { decimals: 0 })} per point
           {Number(value.qty) > 1 && (
-            <> · {value.qty} contracts = <strong>{money(s.dollarsPerPoint, { decimals: 0 })} per point</strong></>
+            <> · {value.qty} contracts = <strong>{usd(s.dollarsPerPoint, { decimals: 0 })} per point</strong></>
           )}
+          {ccy !== 'USD' && <> · settles in USD, your account is in {ccy}</>}
         </div>
       )}
 
@@ -96,6 +100,21 @@ export default function TradeSizer({ value, onChange }) {
         </div>
       )}
 
+      {ccy !== 'USD' && (
+        <div className="grid grid-2 mt">
+          <Field label={`USD → ${ccy} rate`}>
+            <input type="number" step="any" value={value.fxRate} onChange={set('fxRate')}
+                   placeholder="0.7617" />
+          </Field>
+          <div className="tiny faint" style={{ alignSelf: 'end', paddingBottom: 9 }}>
+            {value.contract} pays in dollars, so the figures are converted at this rate.
+            {s.converted && (
+              <> {usd(1, { decimals: 0 })} = {money(s.fx, { currency: ccy, decimals: 4 })}.</>
+            )}
+          </div>
+        </div>
+      )}
+
       {s.offLevel && (
         <div className="tiny faint" style={{ marginTop: 7 }}>
           Filled at {s.exit} rather than {s.defaultExit} — the P&L below uses your fill.
@@ -103,7 +122,7 @@ export default function TradeSizer({ value, onChange }) {
       )}
 
       <div className="grid grid-2 mt">
-        <Field label="Actual P&L from your broker (optional)">
+        <Field label={`Actual P&L from your broker (${ccy}, optional)`}>
           <input type="number" step="any" value={value.actualPnl}
                  onChange={set('actualPnl')} placeholder={s.plannedPnl ? s.plannedPnl.toFixed(2) : ''} />
         </Field>
@@ -120,6 +139,7 @@ export default function TradeSizer({ value, onChange }) {
           <div className="v neg">{s.risk ? `−${money(s.risk)}` : '—'}</div>
           <div className="s">
             {s.stopPoints > 0 ? pts(s.stopPoints) : 'needs entry + stop'}
+            {s.converted && s.riskUsd > 0 && ` · ${usd(s.riskUsd)}`}
             {s.riskPct > 0 && ` · ${(s.riskPct * 100).toFixed(2)}% of account`}
           </div>
         </div>
@@ -128,6 +148,7 @@ export default function TradeSizer({ value, onChange }) {
           <div className="v pos">{s.reward ? `+${money(s.reward)}` : '—'}</div>
           <div className="s">
             {s.targetPoints > 0 ? pts(s.targetPoints) : 'needs entry + target'}
+            {s.converted && s.rewardUsd > 0 && ` · ${usd(s.rewardUsd)}`}
             {s.rr > 0 && ` · ${num(s.rr)}R`}
           </div>
         </div>
@@ -143,6 +164,11 @@ export default function TradeSizer({ value, onChange }) {
                 ? <>out at {s.exit} · {pts(s.exitPoints)} · goes on the calendar</>
                 : 'goes straight onto the calendar'}
           </div>
+          {s.converted && s.complete && (
+            <div className="tiny faint" style={{ marginTop: 3 }}>
+              {usd(s.pnlUsd, { sign: true })} converted at {num(s.fx, 4)}
+            </div>
+          )}
           {s.hasActual && Math.abs(s.slip) >= 0.005 && (
             <div className="tiny faint" style={{ marginTop: 4 }}>
               plan said {money(s.plannedPnl, { sign: true })} ·{' '}

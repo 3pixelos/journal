@@ -1,14 +1,35 @@
 // ---- money / numbers -------------------------------------------------
-export function money(n, { sign = false, decimals = 2 } = {}) {
+export const CURRENCIES = [
+  { code: 'USD', symbol: '$', name: 'US dollar' },
+  { code: 'GBP', symbol: '£', name: 'Pound sterling' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian dollar' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian dollar' },
+]
+
+/**
+ * What the account is denominated in. Set once from settings so the
+ * hundreds of money() calls across the app do not each need telling —
+ * pass { currency } explicitly only for contract figures, which are USD
+ * whatever the account happens to be.
+ */
+let displayCurrency = 'USD'
+export const setDisplayCurrency = (c) => { displayCurrency = c || 'USD' }
+export const getDisplayCurrency = () => displayCurrency
+
+export function money(n, { sign = false, decimals = 2, currency } = {}) {
   const v = Number(n || 0)
   const s = v.toLocaleString('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currency || displayCurrency,
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })
   return sign && v > 0 ? `+${s}` : s
 }
+
+/** Contract P&L is always USD, regardless of the account. */
+export const usd = (n, opts = {}) => money(n, { ...opts, currency: 'USD' })
 
 export function num(n, decimals = 2) {
   const v = Number(n || 0)
