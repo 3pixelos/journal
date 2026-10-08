@@ -80,17 +80,27 @@ export default function TradeSizer({ value, onChange }) {
         </Field>
       </div>
 
-      <div className="grid grid-2 mt">
-        {value.result === 'manual' ? (
-          <Field label="Price you actually got out at">
-            <input type="number" step="any" value={value.exitPrice}
-                   onChange={set('exitPrice')} placeholder="20015" />
+      {/* The level you aimed at is a default, never the answer — a fill is
+          almost never exactly on it, so this is always askable. */}
+      {value.result && (
+        <div className="grid grid-2 mt">
+          <Field label="Exit price — the fill you actually got">
+            <input
+              type="number" step="any" value={value.exitPrice} onChange={set('exitPrice')}
+              placeholder={s.defaultExit != null ? String(s.defaultExit) : '20015'}
+            />
           </Field>
-        ) : <div />}
-        <Field label="Fees / commissions">
-          <input type="number" step="any" value={value.fees} onChange={set('fees')} />
-        </Field>
-      </div>
+          <Field label="Fees / commissions">
+            <input type="number" step="any" value={value.fees} onChange={set('fees')} />
+          </Field>
+        </div>
+      )}
+
+      {s.offLevel && (
+        <div className="tiny faint" style={{ marginTop: 7 }}>
+          Filled at {s.exit} rather than {s.defaultExit} — the P&L below uses your fill.
+        </div>
+      )}
 
       <div className="grid grid-2 mt">
         <Field label="Actual P&L from your broker (optional)">
@@ -148,7 +158,8 @@ export default function TradeSizer({ value, onChange }) {
       {!s.complete && (
         <div className="tiny faint" style={{ marginTop: 9 }}>
           Give it the contract, your entry price and how the trade finished, and the
-          points and P&L are worked out for you and added to the calendar on that date.
+          points and P&L are worked out from your fills and added to the calendar on
+          that date.
         </div>
       )}
     </div>

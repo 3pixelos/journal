@@ -63,18 +63,19 @@ export function sizeTrade({
   const risk = stopPoints * dollarsPerPoint
   const reward = targetPoints * dollarsPerPoint
 
-  // Where the trade actually ended, so P&L and the record agree.
-  let exit = null
-  if (result === 'target' && given(targetPrice)) exit = target
-  else if (result === 'stop' && given(stopPrice)) exit = stop
-  else if (result === 'manual' && given(exitPrice)) exit = n(exitPrice)
+  // Where the trade actually ended. The level you aimed at is only the
+  // default — a fill is almost never exactly on it, and the P&L has to
+  // follow the fill, not the intention.
+  const defaultExit =
+    result === 'target' && given(targetPrice) ? target
+    : result === 'stop' && given(stopPrice) ? stop
+    : null
+  const exit = given(exitPrice) ? n(exitPrice) : defaultExit
 
-  let gross = 0
-  if (result === 'target') gross = reward
-  else if (result === 'stop') gross = -risk
-  else if (result === 'manual' && exit != null && hasEntry) {
-    gross = (exit - entry) * sign * dollarsPerPoint
-  }
+  // One formula for every outcome: distance travelled, in your direction.
+  const gross = exit != null && hasEntry
+    ? (exit - entry) * sign * dollarsPerPoint
+    : 0
 
   // What the plan implies: a clean fill at the level, less fees.
   const plannedPnl = result ? gross - cost : 0
@@ -98,12 +99,7 @@ export function sizeTrade({
   }
 
   // Every level needed to price the chosen outcome is present.
-  const levelsOk = Boolean(
-    hasEntry && result
-    && (result !== 'manual' || exit != null)
-    && (result !== 'target' || given(targetPrice))
-    && (result !== 'stop' || given(stopPrice))
-  )
+  const levelsOk = Boolean(hasEntry && result && exit != null)
 
   // A trade still needs a contract and a size to be worth writing, but a
   // real P&L straight from the broker stands in for the level maths.
@@ -115,6 +111,11 @@ export function sizeTrade({
     risk, reward,
     rr: risk > 0 ? reward / risk : 0,
     exitPoints: exit != null && hasEntry ? Math.abs(exit - entry) : 0,
+    // true when the fill landed somewhere other than the level aimed at
+    offLevel: Boolean(
+      exit != null && defaultExit != null && Math.abs(exit - defaultExit) > 1e-9
+    ),
+    defaultExit,
     exit,
     pnl,
     plannedPnl,
