@@ -26,7 +26,7 @@ const BLANK = {
 const BLANK_SIZE = {
   contract: '', qty: '1',
   entryPrice: '', stopPrice: '', targetPrice: '', exitPrice: '',
-  result: '', fees: '0', balance: '',
+  result: '', fees: '0', balance: '', actualPnl: '',
 }
 
 function Section({ n, title, hint, children }) {
@@ -96,7 +96,7 @@ export default function JournalForm({
         const { data: t } = await supabase
           .from('trades').select('*').eq('id', entry.trade_id).maybeSingle()
         if (t) {
-          setSize({
+          const hydrated = {
             contract: t.contract || '',
             qty: String(t.quantity ?? '1'),
             entryPrice: t.entry_price ?? '',
@@ -106,7 +106,16 @@ export default function JournalForm({
             result: t.result || '',
             fees: String(t.fees ?? '0'),
             balance: t.account_balance ?? '',
-          })
+            actualPnl: '',
+          }
+          // The stored P&L is the truth. If it does not match what the levels
+          // imply, it was overridden — put it back in the override box so
+          // editing round-trips instead of silently reverting to theory.
+          const planned = sizeTrade(hydrated).plannedPnl
+          if (t.pnl != null && Math.abs(Number(t.pnl) - planned) >= 0.005) {
+            hydrated.actualPnl = String(t.pnl)
+          }
+          setSize(hydrated)
         }
       }
     })()

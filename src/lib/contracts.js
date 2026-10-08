@@ -39,7 +39,7 @@ const given = (v) => v !== '' && v !== null && v !== undefined && Number.isFinit
  */
 export function sizeTrade({
   contract, qty, entryPrice, stopPrice, targetPrice, exitPrice,
-  result, fees, balance,
+  result, fees, balance, actualPnl,
 }) {
   const pp = perPoint(contract)
   const contracts = Math.max(n(qty), 0)
@@ -76,7 +76,14 @@ export function sizeTrade({
     gross = (exit - entry) * sign * dollarsPerPoint
   }
 
-  const pnl = result ? gross - cost : 0
+  // What the plan implies: a clean fill at the level, less fees.
+  const plannedPnl = result ? gross - cost : 0
+
+  // What the broker actually paid. Slippage, partial fills and commissions
+  // the fee box missed all live in the gap between the two, so when this is
+  // given it wins — the calendar should show real money, not theory.
+  const hasActual = given(actualPnl)
+  const pnl = hasActual ? n(actualPnl) : plannedPnl
   const startBalance = given(balance) ? n(balance) : null
 
   // Levels on the wrong side of entry are almost always a typo.
@@ -90,12 +97,17 @@ export function sizeTrade({
     }
   }
 
-  const complete = Boolean(
-    contract && contracts > 0 && hasEntry && result
+  // Every level needed to price the chosen outcome is present.
+  const levelsOk = Boolean(
+    hasEntry && result
     && (result !== 'manual' || exit != null)
     && (result !== 'target' || given(targetPrice))
     && (result !== 'stop' || given(stopPrice))
   )
+
+  // A trade still needs a contract and a size to be worth writing, but a
+  // real P&L straight from the broker stands in for the level maths.
+  const complete = Boolean(contract && contracts > 0 && (hasActual || levelsOk))
 
   return {
     perPoint: pp, dollarsPerPoint, dir,
@@ -105,6 +117,10 @@ export function sizeTrade({
     exitPoints: exit != null && hasEntry ? Math.abs(exit - entry) : 0,
     exit,
     pnl,
+    plannedPnl,
+    hasActual,
+    // negative when reality came in under the plan
+    slip: hasActual && result ? n(actualPnl) - plannedPnl : 0,
     startBalance,
     endBalance: startBalance == null ? null : startBalance + pnl,
     riskPct: startBalance > 0 ? risk / startBalance : 0,

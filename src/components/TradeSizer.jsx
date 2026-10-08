@@ -92,6 +92,17 @@ export default function TradeSizer({ value, onChange }) {
         </Field>
       </div>
 
+      <div className="grid grid-2 mt">
+        <Field label="Actual P&L from your broker (optional)">
+          <input type="number" step="any" value={value.actualPnl}
+                 onChange={set('actualPnl')} placeholder={s.plannedPnl ? s.plannedPnl.toFixed(2) : ''} />
+        </Field>
+        <div className="tiny faint" style={{ alignSelf: 'end', paddingBottom: 9 }}>
+          The figures above assume a clean fill at your level. If your statement says
+          something different, put the real number here and it is what gets recorded.
+        </div>
+      </div>
+
       {/* ---- the maths, live ---- */}
       <div className="sizer-out">
         <div className="sizer-tile">
@@ -111,7 +122,7 @@ export default function TradeSizer({ value, onChange }) {
           </div>
         </div>
         <div className="sizer-tile wide">
-          <div className="k">Result</div>
+          <div className="k">Result {s.hasActual && <span className="faint">· actual</span>}</div>
           <div className={`v big ${pnlClass(s.pnl)}`}>
             {s.complete ? money(s.pnl, { sign: true }) : '—'}
           </div>
@@ -122,6 +133,15 @@ export default function TradeSizer({ value, onChange }) {
                 ? <>out at {s.exit} · {pts(s.exitPoints)} · goes on the calendar</>
                 : 'goes straight onto the calendar'}
           </div>
+          {s.hasActual && Math.abs(s.slip) >= 0.005 && (
+            <div className="tiny faint" style={{ marginTop: 4 }}>
+              plan said {money(s.plannedPnl, { sign: true })} ·{' '}
+              <span className={s.slip < 0 ? 'neg' : 'pos'}>
+                {money(s.slip, { sign: true })}
+              </span>{' '}
+              to slippage &amp; costs
+            </div>
+          )}
         </div>
       </div>
 
