@@ -1183,3 +1183,20 @@ th { font-weight: 700; letter-spacing: 0.08em; }
    stay put rather than shrinking the input. */
 .step-edit input { min-width: 0; }
 .step-edit button { flex: 0 0 auto; }
+
+/* ===== chart tooltip ================================================ */
+.chart-tip {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 8px 11px; box-shadow: var(--shadow);
+}
+.chart-tip .t-date {
+  font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px;
+}
+.chart-tip .t-val {
+  font-size: 16px; font-weight: 780; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.chart-tip .t-key {
+  font-size: 10px; color: var(--faint); text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 700; margin-top: 1px;
+}

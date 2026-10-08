@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -35,6 +35,20 @@ function endOfMonth(dateStr) {
   const [y, m] = dateStr.split('-').map(Number)
   const d = new Date(y, m, 0)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Recharts colours tooltip values by the series stroke, which made a loss
+ *  read green. This colours by the number's own sign. */
+function EquityTip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const v = Number(payload[0].value)
+  return (
+    <div className="chart-tip">
+      <div className="t-date">{shortDate(label)}</div>
+      <div className={`t-val ${pnlClass(v)}`}>{money(v, { sign: true })}</div>
+      <div className="t-key">running equity</div>
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -128,6 +142,23 @@ export default function Dashboard() {
   )
 
   const curve = useMemo(() => equityCurve(trades), [trades])
+
+  // The gradient break has to line up with $0 on the axis, so the domain is
+  // pinned rather than left to Recharts — otherwise the colour change sits
+  // wherever its auto-rounding happened to put the scale.
+  const eq = useMemo(() => {
+    if (!curve.length) return { domain: [0, 1], zeroAt: 1 }
+    const vals = curve.map((p) => p.equity)
+    const hi = Math.max(...vals, 0)
+    const lo = Math.min(...vals, 0)
+    const pad = (hi - lo) * 0.08 || 1
+    const dHi = hi + pad
+    const dLo = lo - pad
+    return {
+      domain: [dLo, dHi],
+      zeroAt: Math.min(Math.max(dHi / (dHi - dLo), 0), 1),
+    }
+  }, [curve])
   const name = profile?.display_name || 'trader'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
@@ -280,21 +311,26 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={curve} margin={{ top: 6, right: 6, left: -14, bottom: 0 }}>
                 <defs>
+                  {/* two stops at the same offset give a hard colour break at $0 */}
+                  <linearGradient id="eqStroke" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset={eq.zeroAt} stopColor="var(--pos)" />
+                    <stop offset={eq.zeroAt} stopColor="var(--neg)" />
+                  </linearGradient>
                   <linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--pos)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="var(--pos)" stopOpacity={0} />
+                    <stop offset={0} stopColor="var(--pos)" stopOpacity={0.3} />
+                    <stop offset={eq.zeroAt} stopColor="var(--pos)" stopOpacity={0.02} />
+                    <stop offset={eq.zeroAt} stopColor="var(--neg)" stopOpacity={0.02} />
+                    <stop offset={1} stopColor="var(--neg)" stopOpacity={0.3} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
                 <XAxis dataKey="date" tickFormatter={tinyDate} tickLine={false}
                        axisLine={false} minTickGap={28} />
-                <YAxis tickLine={false} axisLine={false} width={58}
-                       tickFormatter={(v) => `$${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`} />
-                <Tooltip
-                  contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 9 }}
-                  formatter={(v) => [money(v), 'Equity']} labelFormatter={shortDate}
-                />
-                <Area type="monotone" dataKey="equity" stroke="var(--pos)" strokeWidth={2.4}
+                <YAxis tickLine={false} axisLine={false} width={58} domain={eq.domain}
+                       tickFormatter={(v) => `$${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v)}`} />
+                <Tooltip cursor={{ stroke: 'var(--line)' }} content={<EquityTip />} />
+                <ReferenceLine y={0} stroke="var(--faint)" strokeDasharray="4 4" />
+                <Area type="monotone" dataKey="equity" stroke="url(#eqStroke)" strokeWidth={2.4}
                       fill="url(#eq)" />
               </AreaChart>
             </ResponsiveContainer>
