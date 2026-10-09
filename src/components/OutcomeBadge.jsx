@@ -7,6 +7,16 @@ export const OUTCOMES = [
 /** Win / loss / breakeven label. Says how it went, never how much. */
 export default function OutcomeBadge({ outcome }) {
   if (!outcome) return null
+  if (outcome === 'no_trade') {
+    return (
+      <span className="chip" style={{
+        color: 'var(--warn)', background: 'rgba(245,185,66,0.14)',
+        borderColor: 'transparent', fontWeight: 700,
+      }}>
+        ⊘ No trade
+      </span>
+    )
+  }
   const win = outcome === 'win'
   const loss = outcome === 'loss'
   return (

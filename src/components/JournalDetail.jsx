@@ -205,7 +205,11 @@ export default function JournalDetail({
       ) : (
         written.map((f) => (
           <div className="jsection" key={f.key}>
-            <div className="k">{f.label}</div>
+            <div className="k">
+              {entry.outcome === 'no_trade' && f.key === 'reasoning'
+                ? 'Why I stood aside'
+                : f.label}
+            </div>
             <div className="v">{entry[f.key]}</div>
           </div>
         ))

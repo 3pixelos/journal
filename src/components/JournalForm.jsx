@@ -70,6 +70,9 @@ export default function JournalForm({
   // A backtest is the same record without the money: no contract, no prices,
   // no P&L, so nothing to put on the calendar.
   const isBacktest = (entry?.kind || kind) === 'backtest'
+  // A day you read and stood aside: the chart and the reason are the whole
+  // record, so everything built around an entry is irrelevant.
+  const noTrade = form.outcome === 'no_trade'
 
   // ---- hydrate an existing entry, and the trade behind it -------------
   useEffect(() => {
@@ -136,6 +139,7 @@ export default function JournalForm({
   // Outcome follows the result unless it was set by hand.
   useEffect(() => {
     if (!size.result || form.outcome) return
+    if (noTrade) return
     const o = size.result === 'target' ? 'win'
       : size.result === 'stop' ? 'loss'
       : sized.pnl > 0 ? 'win'
@@ -153,7 +157,7 @@ export default function JournalForm({
     try {
       // --- 1. the trade, so the P&L reaches the calendar ---------------
       let tradeId = form.trade_id || null
-      if (!isBacktest && sized.complete) {
+      if (!isBacktest && !noTrade && sized.complete) {
         const numOrNull = (v) => (v === '' || v == null ? null : Number(v))
         const tradePayload = {
           user_id: user.id,
@@ -197,6 +201,7 @@ export default function JournalForm({
         kind: isBacktest ? 'backtest' : 'journal',
         title: form.title.trim() || (size.contract
           ? `${size.contract} · ${model?.name || form.entry_date}`
+          : noTrade ? `No trade · ${form.entry_date}`
           : isBacktest ? `${model?.name || 'Backtest'} · ${form.entry_date}`
           : `Journal · ${form.entry_date}`),
         entry_date: form.entry_date,
@@ -266,6 +271,7 @@ export default function JournalForm({
           <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn-go" onClick={save} disabled={busy}>
             {busy ? 'Saving…'
+              : noTrade ? 'Save as no-trade day'
               : isBacktest ? 'Save backtest'
               : sized.complete ? 'Save & add to calendar'
               : 'Save entry'}
@@ -288,6 +294,73 @@ export default function JournalForm({
           </Field>
         </div>
 
+        <div className="tradeq">
+          <div className="tiny faint" style={{ fontWeight: 700, letterSpacing: '0.07em', marginBottom: 8 }}>
+            DID YOU TAKE A TRADE?
+          </div>
+          <div className="fault-grid">
+            <button
+              type="button"
+              className={`exec ${!noTrade ? 'on pos' : ''}`}
+              onClick={() => setForm((f) => ({ ...f, outcome: f.outcome === 'no_trade' ? '' : f.outcome }))}
+            >
+              <span className="exec-l">Yes, I took it</span>
+              <span className="exec-h">Log the setup, the result and what you did.</span>
+            </button>
+            <button
+              type="button"
+              className={`exec ${noTrade ? 'on warn' : ''}`}
+              onClick={() => setForm((f) => ({ ...f, outcome: 'no_trade', fault: '' }))}
+            >
+              <span className="exec-l">No — I stood aside</span>
+              <span className="exec-h">
+                Just the chart and why. Counts as a day reviewed, never as a win or loss.
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {noTrade ? (
+          <>
+            <Section n="1" title="What were you watching?"
+                     hint="Optional — the model you had in mind, if any.">
+              <Field label="Model">
+                <select value={form.model_id}
+                        onChange={(e) => setForm((f) => ({ ...f, model_id: e.target.value }))}>
+                  <option value="">— none —</option>
+                  {models.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              </Field>
+            </Section>
+
+            <Section n="2" title="Why did you stand aside?"
+                     hint="What about the market told you to stay out. This is the whole point of logging it.">
+              <textarea
+                rows={5}
+                value={form.reasoning}
+                onChange={set('reasoning')}
+                placeholder={'No clean structure, chopping inside the range, no liquidity taken '
+                  + 'yet, spread too wide, waiting on the release…'}
+              />
+            </Section>
+
+            <Section n="3" title="Chart" hint="What the market looked like when you passed.">
+              <ScreenshotUploader paths={paths} onChange={setPaths} />
+            </Section>
+
+            <Section n="4" title="Visibility">
+              <Segmented
+                value={form.is_shared ? 'public' : 'private'}
+                onChange={(v) => setForm((f) => ({ ...f, is_shared: v === 'public' }))}
+                options={[
+                  { value: 'public', label: '◉ Public' },
+                  { value: 'private', label: '🔒 Private' },
+                ]}
+              />
+            </Section>
+          </>
+        ) : (
+        <>
         <Section n="1" title="Which model?"
                  hint="The setup you were trading, and the steps it takes.">
           <ModelPicker
@@ -448,6 +521,8 @@ export default function JournalForm({
               : 'Only you can see this entry.'}
           </div>
         </Section>
+        </>
+        )}
 
         <button type="submit" hidden />
       </form>

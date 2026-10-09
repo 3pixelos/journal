@@ -44,6 +44,7 @@ another user's session physically cannot read a row.
    - [`supabase/012_restate_currency.sql`](supabase/012_restate_currency.sql) — restate history when the currency changes
    - [`supabase/013_loss_fault.sql`](supabase/013_loss_fault.sql) — whose fault a loss was
    - [`supabase/014_news_loss.sql`](supabase/014_news_loss.sql) — losses caused by high-impact news
+   - [`supabase/015_no_trade.sql`](supabase/015_no_trade.sql) — days you stood aside
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -180,6 +181,11 @@ model's win rate — they say nothing about whether the setup works — and coun
 confused. A loss can also be blamed on high-impact news — still a loss for the model,
 but marked with a red band across the card so a run of red reads as "the data hit"
 rather than "the edge is gone".
+
+Every entry starts by asking whether you took a trade at all. Standing aside collapses
+the form to the chart and why you passed, counts as a day reviewed rather than a win or
+a loss, and is banded in amber on the card — so a quiet market is recorded as a decision
+instead of a gap in the journal.
 
 **Account currency** — NQ and MNQ settle in US dollars, so an account denominated in
 anything else sees a converted figure arrive. Set your currency and a USD rate in

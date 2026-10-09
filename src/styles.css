@@ -1244,3 +1244,16 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 .fault-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 900px) { .fault-grid.three { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .news-streak span { font-size: 10px; letter-spacing: 0.1em; } }
+
+/* A stood-aside day gets the same band treatment as news, in amber — it is
+   information, not a failure. */
+.news-streak.stood span {
+  background: rgba(245, 185, 66, 0.92);
+  color: #2a1c02;
+  text-shadow: none;
+}
+
+.tradeq {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg-soft); padding: 12px 13px; margin-bottom: 4px;
+}

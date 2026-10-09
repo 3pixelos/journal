@@ -8,6 +8,7 @@ export function OutcomeTag({ outcome }) {
     win: ['↗', 'Win', 'win'],
     loss: ['↘', 'Loss', 'loss'],
     breakeven: ['→', 'B/E', 'be'],
+    no_trade: ['⊘', 'No trade', 'be'],
   }
   const [arrow, label, cls] = map[outcome] || []
   if (!label) return null
@@ -50,9 +51,14 @@ export default function JournalCard({ entry, trade, author, paths = [], isMine, 
             <span>No chart attached</span>
           </div>
         )}
-        {entry.fault === 'news' && (
+        {entry.fault === 'news' && entry.outcome !== 'no_trade' && (
           <div className="news-streak" aria-label="High-impact news">
             <span>HIGH IMPACT NEWS</span>
+          </div>
+        )}
+        {entry.outcome === 'no_trade' && (
+          <div className="news-streak stood" aria-label="No trade taken">
+            <span>NO TRADE</span>
           </div>
         )}
         {!entry.is_shared && <span className="jcard-lock" title="Private">🔒</span>}

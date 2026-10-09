@@ -18,7 +18,11 @@ const pct = (n) => `${(n * 100).toFixed(0)}%`
  * because a model that only looks good once your errors are removed is
  * worth knowing about too.
  */
-function rate(rows) {
+function rate(all) {
+  // Days you stood aside are reviewed days, not tested setups — they belong
+  // nowhere near a win rate.
+  const avoided = all.filter((r) => r.outcome === 'no_trade').length
+  const rows = all.filter((r) => r.outcome !== 'no_trade')
   const wins = rows.filter((r) => r.outcome === 'win').length
   const lost = rows.filter((r) => r.outcome === 'loss')
   const mine = lost.filter((r) => r.fault === 'mine').length
@@ -30,6 +34,7 @@ function rate(rows) {
   const judged = wins + strategyLosses
   return {
     tests: rows.length,
+    avoided,
     wins,
     losses: lost.length,
     mine,
@@ -184,11 +189,13 @@ export default function Backtesting() {
         </button>
       </div>
 
-      <div className="grid grid-3">
+      <div className="grid grid-4">
         <Stat label="Tests logged" value={overall.tests}
               sub={overall.decided < overall.tests
                 ? `${overall.tests - overall.decided} unmarked`
                 : 'all marked'} />
+        <Stat label="Days stood aside" value={overall.avoided}
+              sub={overall.avoided ? 'kept out of the win rate' : 'none logged yet'} />
         <Stat label="Strategy win rate" value={overall.judged ? pct(overall.winRate) : '—'}
               tone={overall.winRate >= 0.5 ? 'pos' : overall.judged ? 'neg' : ''}
               sub={[
@@ -308,6 +315,7 @@ export default function Backtesting() {
               { value: '', label: 'All' },
               { value: 'win', label: 'Wins' },
               { value: 'loss', label: 'Losses' },
+              { value: 'no_trade', label: '⊘ Stood aside' },
             ]}
           />
         </div>
