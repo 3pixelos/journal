@@ -10,7 +10,7 @@ export default function OutcomeBadge({ outcome }) {
   if (outcome === 'no_trade') {
     return (
       <span className="chip" style={{
-        color: 'var(--warn)', background: 'rgba(245,185,66,0.14)',
+        color: 'var(--text-2)', background: 'var(--panel-3)',
         borderColor: 'transparent', fontWeight: 700,
       }}>
         ⊘ No trade

@@ -51,16 +51,21 @@ export default function JournalCard({ entry, trade, author, paths = [], isMine, 
             <span>No chart attached</span>
           </div>
         )}
-        {entry.fault === 'news' && entry.outcome !== 'no_trade' && (
-          <div className="news-streak" aria-label="High-impact news">
-            <span>HIGH IMPACT NEWS</span>
-          </div>
-        )}
-        {entry.outcome === 'no_trade' && (
+        {/* At most one band, in order of what the day actually was: a day you
+            passed on, then an external hit, then an error of your own. */}
+        {entry.outcome === 'no_trade' ? (
           <div className="news-streak stood" aria-label="No trade taken">
             <span>NO TRADE</span>
           </div>
-        )}
+        ) : entry.fault === 'news' ? (
+          <div className="news-streak" aria-label="High-impact news">
+            <span>HIGH IMPACT NEWS</span>
+          </div>
+        ) : entry.fault === 'mine' ? (
+          <div className="news-streak mine" aria-label="My mistake">
+            <span>MY MISTAKE</span>
+          </div>
+        ) : null}
         {!entry.is_shared && <span className="jcard-lock" title="Private">🔒</span>}
         {paths.length > 1 && <span className="count">{paths.length} shots</span>}
       </div>

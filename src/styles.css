@@ -1245,11 +1245,18 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 @media (max-width: 900px) { .fault-grid.three { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .news-streak span { font-size: 10px; letter-spacing: 0.1em; } }
 
-/* A stood-aside day gets the same band treatment as news, in amber — it is
-   information, not a failure. */
-.news-streak.stood span {
-  background: rgba(245, 185, 66, 0.92);
+/* Three bands, three meanings, kept apart by colour:
+     red    — an external hit (news)
+     amber  — an error of yours, matching the "My mistake" badge
+     slate  — a day you passed on, which is information, not a failure  */
+.news-streak.mine span {
+  background: rgba(245, 185, 66, 0.94);
   color: #2a1c02;
+  text-shadow: none;
+}
+.news-streak.stood span {
+  background: rgba(120, 128, 142, 0.92);
+  color: #fff;
   text-shadow: none;
 }
 
@@ -1261,23 +1268,23 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 /* A day you reviewed and passed on: amber, so it reads as a decision rather
    than the blank of a day you never looked at. */
 .cal-cell.stood {
-  background: rgba(245, 185, 66, 0.11);
-  border-color: rgba(245, 185, 66, 0.3);
+  background: var(--panel-2);
+  border-color: var(--panel-3);
   border-style: solid;
 }
-.cal-cell.stood .daynum { color: var(--warn); }
+.cal-cell.stood .daynum { color: var(--text-2); }
 .cal-stood {
   margin-top: auto;
-  font-size: 10.5px; font-weight: 700; color: var(--warn);
+  font-size: 10.5px; font-weight: 700; color: var(--muted);
   letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 :root[data-theme='light'] .cal-cell.stood {
-  background: rgba(180, 83, 9, 0.12);
-  border-color: rgba(180, 83, 9, 0.4);
-  box-shadow: inset 3px 0 0 var(--warn);
+  background: var(--panel-2);
+  border-color: var(--line);
+  box-shadow: inset 3px 0 0 var(--faint);
 }
 @media (max-width: 560px) { .cal-stood { font-size: 9.5px; } }
 .daysum.stood-sum {
-  background: rgba(245, 185, 66, 0.1);
-  border-color: rgba(245, 185, 66, 0.32);
+  background: var(--panel-2);
+  border-color: var(--panel-3);
 }
