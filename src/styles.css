@@ -1257,3 +1257,27 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--bg-soft); padding: 12px 13px; margin-bottom: 4px;
 }
+
+/* A day you reviewed and passed on: amber, so it reads as a decision rather
+   than the blank of a day you never looked at. */
+.cal-cell.stood {
+  background: rgba(245, 185, 66, 0.11);
+  border-color: rgba(245, 185, 66, 0.3);
+  border-style: solid;
+}
+.cal-cell.stood .daynum { color: var(--warn); }
+.cal-stood {
+  margin-top: auto;
+  font-size: 10.5px; font-weight: 700; color: var(--warn);
+  letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+:root[data-theme='light'] .cal-cell.stood {
+  background: rgba(180, 83, 9, 0.12);
+  border-color: rgba(180, 83, 9, 0.4);
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+@media (max-width: 560px) { .cal-stood { font-size: 9.5px; } }
+.daysum.stood-sum {
+  background: rgba(245, 185, 66, 0.1);
+  border-color: rgba(245, 185, 66, 0.32);
+}

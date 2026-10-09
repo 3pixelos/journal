@@ -33,6 +33,7 @@ export default function Trades() {
   const [selectedDay, setSelectedDay] = useState(null)
 
   const [trades, setTrades] = useState([])
+  const [stoodAside, setStoodAside] = useState({})
   const [tagLinks, setTagLinks] = useState({})
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
@@ -48,14 +49,24 @@ export default function Trades() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data } = await supabase
-      .from('trades')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('trade_date', { ascending: false })
-      .order('created_at', { ascending: false })
+    const [{ data }, { data: aside }] = await Promise.all([
+      supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('trade_date', { ascending: false })
+        .order('created_at', { ascending: false }),
+      // days reviewed and passed on — they carry no trade, so the calendar
+      // would otherwise show them as blank
+      supabase
+        .from('journal_entries')
+        .select('id, entry_date, reasoning, title')
+        .eq('user_id', user.id)
+        .eq('outcome', 'no_trade'),
+    ])
     const rows = data || []
     setTrades(rows)
+    setStoodAside(Object.fromEntries((aside || []).map((e) => [e.entry_date, e])))
     setTagLinks(await loadTagLinks('trade_tags', 'trade_id', rows.map((t) => t.id)))
     setLoading(false)
   }, [user])
@@ -195,6 +206,7 @@ export default function Trades() {
               month={month}
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
+              stoodAside={stoodAside}
             />
             {monthTrades.length === 0 && (
               <div className="small muted center" style={{ marginTop: 14 }}>
@@ -227,6 +239,7 @@ export default function Trades() {
         <DayModal
           date={selectedDay}
           trades={dayTrades}
+          stoodAside={stoodAside[selectedDay]}
           onClose={() => setSelectedDay(null)}
           onPick={(t) => { setSelectedDay(null); setEditing(t); setShowForm(true) }}
           onLog={() => { const d = selectedDay; setSelectedDay(null); openNew(d) }}

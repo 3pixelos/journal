@@ -58,6 +58,7 @@ export default function Dashboard() {
 
   const [trades, setTrades] = useState([])
   const [tagLinks, setTagLinks] = useState({})
+  const [stoodAside, setStoodAside] = useState({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [formDate, setFormDate] = useState(null)
@@ -121,9 +122,10 @@ export default function Dashboard() {
         isWeekend: dow >= 5,
         pnl: map[date]?.pnl ?? 0,
         count: map[date]?.trades ?? 0,
+        stood: Boolean(stoodAside[date]),
       }
     })
-  }, [trades, today])
+  }, [trades, today, stoodAside])
 
   // which setups actually pay, over the selected period
   const byTag = useMemo(() => {
@@ -266,19 +268,22 @@ export default function Dashboard() {
               d.isWeekend ? 'weekend' : '',
               has && d.pnl > 0 ? 'win' : '',
               has && d.pnl < 0 ? 'loss' : '',
+              !has && d.stood ? 'stood' : '',
               d.date === today ? 'today' : '',
             ].filter(Boolean).join(' ')
             return (
               <button key={d.date} className={klass} onClick={() => setOpenDay(d.date)}>
                 <span className="daynum">{d.label} {d.dayNum}</span>
-                {has && (
+                {has ? (
                   <>
                     <span className={`cal-pnl ${d.pnl > 0 ? 'pos' : 'neg'}`}>
                       {money(d.pnl, { sign: true, decimals: 0 })}
                     </span>
                     <span className="cal-meta">{d.count} trade{d.count === 1 ? '' : 's'}</span>
                   </>
-                )}
+                ) : d.stood ? (
+                  <span className="cal-stood">⊘ No trade</span>
+                ) : null}
               </button>
             )
           })}
@@ -342,6 +347,7 @@ export default function Dashboard() {
         <DayModal
           date={openDay}
           trades={trades.filter((t) => t.trade_date === openDay)}
+          stoodAside={stoodAside[openDay]}
           onClose={() => setOpenDay(null)}
           onPick={(t) => { setOpenDay(null); setFormDate(t); setShowForm(true) }}
           onLog={() => { setFormDate({ trade_date: openDay }); setOpenDay(null); setShowForm(true) }}

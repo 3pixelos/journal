@@ -17,7 +17,9 @@ function cell(n) {
  * Green days are winners, red are losers. Saturday and Sunday are greyed
  * out — markets are shut — but still render a trade if one is logged there.
  */
-export default function TradeCalendar({ trades, month, onSelectDay, selectedDay }) {
+export default function TradeCalendar({
+  trades, month, onSelectDay, selectedDay, stoodAside = {},
+}) {
   const today = todayStr()
 
   const weeks = useMemo(() => {
@@ -37,6 +39,8 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
         isWeekend: dow >= 5,
         pnl: d?.pnl ?? 0,
         count: d?.trades ?? 0,
+        // a day you reviewed and passed on — no trade, but not nothing
+        stood: Boolean(stoodAside[date]),
         dayNum: parseDateStr(date).getDate(),
       }
     })
@@ -45,7 +49,7 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
     for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7))
     while (rows.length > 4 && rows[rows.length - 1].every((d) => !d.inMonth)) rows.pop()
     return rows
-  }, [trades, month])
+  }, [trades, month, stoodAside])
 
   // Eight columns on a phone leaves ~24px per day, which cannot hold a
   // figure. Weekends are shut anyway, so they fold away on narrow screens —
@@ -80,6 +84,7 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
                   d.isWeekend ? 'weekend' : '',
                   has && d.pnl > 0 ? 'win' : '',
                   has && d.pnl < 0 ? 'loss' : '',
+                  !has && d.stood ? 'stood' : '',
                   d.date === today ? 'today' : '',
                 ].filter(Boolean).join(' ')
 
@@ -91,7 +96,9 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
                     title={
                       has
                         ? `${d.date} · ${money(d.pnl, { sign: true })} · ${d.count} trades`
-                        : d.isWeekend ? `${d.date} · market closed` : d.date
+                        : d.stood ? `${d.date} · stood aside`
+                        : d.isWeekend ? `${d.date} · market closed`
+                        : d.date
                     }
                   >
                     <span className="daynum">
@@ -100,14 +107,16 @@ export default function TradeCalendar({ trades, month, onSelectDay, selectedDay 
                         <i className="tag-dot" style={{ background: 'var(--accent)' }} />
                       )}
                     </span>
-                    {has && (
+                    {has ? (
                       <>
                         <span className={`cal-pnl ${d.pnl > 0 ? 'pos' : d.pnl < 0 ? 'neg' : 'flat'}`}>
                           {cell(d.pnl)}
                         </span>
                         <span className="cal-meta">{d.count} trade{d.count === 1 ? '' : 's'}</span>
                       </>
-                    )}
+                    ) : d.stood ? (
+                      <span className="cal-stood">⊘ No trade</span>
+                    ) : null}
                   </button>
                 )
               })}

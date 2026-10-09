@@ -3,7 +3,9 @@ import { stats } from '../lib/calc'
 import { Modal, Empty } from './ui'
 
 /** A day's trades in a popup, from the calendar or the dashboard week strip. */
-export default function DayModal({ date, trades, onClose, onPick, onLog, tags = [], tagLinks = {} }) {
+export default function DayModal({
+  date, trades, onClose, onPick, onLog, stoodAside, tags = [], tagLinks = {},
+}) {
   const s = stats(trades)
 
   return (
@@ -19,9 +21,25 @@ export default function DayModal({ date, trades, onClose, onPick, onLog, tags = 
         </>
       }
     >
+      {stoodAside && (
+        <div className="daysum stood-sum">
+          <span className="big" style={{ color: 'var(--warn)' }}>⊘ No trade</span>
+          <span className="muted small">you reviewed this day and passed</span>
+        </div>
+      )}
+
+      {stoodAside?.reasoning && (
+        <div className="jsection">
+          <div className="k">Why I stood aside</div>
+          <div className="v">{stoodAside.reasoning}</div>
+        </div>
+      )}
+
       {trades.length === 0 ? (
-        <Empty icon="○" title="Nothing logged on this day"
-               hint="Quiet days count too — but if you traded, get it on the record." />
+        stoodAside ? null : (
+          <Empty icon="○" title="Nothing logged on this day"
+                 hint="Quiet days count too — but if you traded, get it on the record." />
+        )
       ) : (
         <>
           <div className="daysum">
