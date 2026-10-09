@@ -112,6 +112,10 @@ export default function Journal() {
   }, [range])
 
   const allTags = useMemo(() => Object.values(tagsById), [tagsById])
+  const stoodAside = useMemo(
+    () => entries.filter((e) => e.outcome === 'no_trade').length,
+    [entries]
+  )
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -218,6 +222,7 @@ export default function Journal() {
         <div className="row-wrap mt" style={{ gap: 6 }}>
           <span className="jcount">
             {filtered.length} of {entries.length} entr{entries.length === 1 ? 'y' : 'ies'}
+            {stoodAside > 0 && <span className="faint"> · {stoodAside} stood aside</span>}
           </span>
           <span className="faint">·</span>
           <Segmented
@@ -227,6 +232,7 @@ export default function Journal() {
               { value: '', label: 'All' },
               { value: 'win', label: 'Wins' },
               { value: 'loss', label: 'Losses' },
+              { value: 'no_trade', label: '⊘ Stood aside' },
             ]}
           />
           {allTags.map((t) => (

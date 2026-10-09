@@ -217,7 +217,8 @@ export default function JournalForm({
         // only meaningful on a loss
         fault: form.outcome === 'loss' ? (form.fault || null) : null,
         model_id: form.model_id || null,
-        trade_id: isBacktest ? null : tradeId,
+        // a stood-aside day has no trade, even if one was linked before
+        trade_id: isBacktest || noTrade ? null : tradeId,
       }
 
       let row
