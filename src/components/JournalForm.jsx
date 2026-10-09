@@ -403,7 +403,7 @@ export default function JournalForm({
               <div className="tiny faint" style={{ fontWeight: 700, letterSpacing: '0.07em', marginBottom: 8 }}>
                 WHOSE FAULT WAS IT?
               </div>
-              <div className="fault-grid">
+              <div className="fault-grid three">
                 <button
                   type="button"
                   className={`exec ${form.fault === 'strategy' ? 'on neg' : ''}`}
@@ -423,6 +423,17 @@ export default function JournalForm({
                   <span className="exec-h">
                     Entered early, sized wrong, moved the stop. Left out of the model's
                     win rate — it counts against you instead.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`exec ${form.fault === 'news' ? 'on neg' : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, fault: f.fault === 'news' ? '' : 'news' }))}
+                >
+                  <span className="exec-l">High-impact news</span>
+                  <span className="exec-h">
+                    A release ran it over. Not your error, so it counts as a strategy
+                    loss — but it is flagged so you can tell it apart.
                   </span>
                 </button>
               </div>

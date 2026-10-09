@@ -50,6 +50,11 @@ export default function JournalCard({ entry, trade, author, paths = [], isMine, 
             <span>No chart attached</span>
           </div>
         )}
+        {entry.fault === 'news' && (
+          <div className="news-streak" aria-label="High-impact news">
+            <span>HIGH IMPACT NEWS</span>
+          </div>
+        )}
         {!entry.is_shared && <span className="jcard-lock" title="Private">🔒</span>}
         {paths.length > 1 && <span className="count">{paths.length} shots</span>}
       </div>

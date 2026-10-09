@@ -22,6 +22,9 @@ function rate(rows) {
   const wins = rows.filter((r) => r.outcome === 'win').length
   const lost = rows.filter((r) => r.outcome === 'loss')
   const mine = lost.filter((r) => r.fault === 'mine').length
+  // A news loss is still a loss for the model — it just was not the setup
+  // being wrong, so it is counted separately and flagged.
+  const news = lost.filter((r) => r.fault === 'news').length
   const strategyLosses = lost.length - mine
   const decided = wins + lost.length
   const judged = wins + strategyLosses
@@ -30,6 +33,7 @@ function rate(rows) {
     wins,
     losses: lost.length,
     mine,
+    news,
     strategyLosses,
     decided,
     judged,
@@ -187,9 +191,11 @@ export default function Backtesting() {
                 : 'all marked'} />
         <Stat label="Strategy win rate" value={overall.judged ? pct(overall.winRate) : '—'}
               tone={overall.winRate >= 0.5 ? 'pos' : overall.judged ? 'neg' : ''}
-              sub={overall.mine
-                ? `${overall.wins}W · ${overall.strategyLosses}L · ${overall.mine} of your own excluded`
-                : `${overall.wins}W · ${overall.losses}L`} />
+              sub={[
+                `${overall.wins}W · ${overall.strategyLosses}L`,
+                overall.mine ? `${overall.mine} of your own excluded` : null,
+                overall.news ? `⚡ ${overall.news} to news` : null,
+              ].filter(Boolean).join(' · ')} />
         <Stat label="Models tested" value={perModel.length}
               sub={models.length ? `of ${models.length}` : 'none created yet'} />
       </div>
@@ -245,6 +251,11 @@ export default function Backtesting() {
                       {r.mine > 0 && (
                         <div className="tiny faint" style={{ fontWeight: 500 }}>
                           {pct(r.rawWinRate)} counting your errors
+                        </div>
+                      )}
+                      {r.news > 0 && (
+                        <div className="tiny faint" style={{ fontWeight: 500 }}>
+                          ⚡ {r.news} to news
                         </div>
                       )}
                     </td>

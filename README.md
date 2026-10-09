@@ -43,6 +43,7 @@ another user's session physically cannot read a row.
    - [`supabase/011_account_currency.sql`](supabase/011_account_currency.sql) — account currency and USD conversion
    - [`supabase/012_restate_currency.sql`](supabase/012_restate_currency.sql) — restate history when the currency changes
    - [`supabase/013_loss_fault.sql`](supabase/013_loss_fault.sql) — whose fault a loss was
+   - [`supabase/014_news_loss.sql`](supabase/014_news_loss.sql) — losses caused by high-impact news
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -176,7 +177,9 @@ splits each one by whether every step was actually followed.
 A loss asks whose fault it was. Losses you mark as your own error are held out of the
 model's win rate — they say nothing about whether the setup works — and counted under
 "your errors" instead, with the unadjusted rate shown underneath so the two never get
-confused.
+confused. A loss can also be blamed on high-impact news — still a loss for the model,
+but marked with a red band across the card so a run of red reads as "the data hit"
+rather than "the edge is gone".
 
 **Account currency** — NQ and MNQ settle in US dollars, so an account denominated in
 anything else sees a converted figure arrive. Set your currency and a USD rate in

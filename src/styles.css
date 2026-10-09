@@ -1221,3 +1221,26 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   .tagpick-new { flex-wrap: wrap; }
   .tagpick-new input { flex: 1 1 100%; }
 }
+
+/* ===== high-impact news streak ====================================== */
+/* A diagonal band across the chart, so a news-driven loss is obvious at a
+   glance in a wall of tiles rather than needing the card opened. */
+.news-streak {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  display: grid; place-items: center;
+}
+.news-streak span {
+  width: 170%; text-align: center;
+  transform: rotate(-16deg);
+  background: rgba(239, 68, 68, 0.92);
+  color: #fff;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.16em;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.fault-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .fault-grid.three { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .news-streak span { font-size: 10px; letter-spacing: 0.1em; } }

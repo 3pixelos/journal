@@ -72,7 +72,9 @@ export default function JournalDetail({
             background: entry.fault === 'mine' ? 'rgba(245,185,66,0.14)' : 'var(--neg-soft)',
             fontWeight: 700,
           }}>
-            {entry.fault === 'mine' ? 'My mistake' : "Strategy's fault"}
+            {entry.fault === 'mine' ? 'My mistake'
+              : entry.fault === 'news' ? '⚡ High-impact news'
+              : "Strategy's fault"}
           </span>
         )}
         <span className="chip">{entry.is_shared ? '◉ Public' : '🔒 Private'}</span>
@@ -129,6 +131,12 @@ export default function JournalDetail({
             onClick={() => onFault(entry, entry.fault === 'mine' ? null : 'mine')}
           >
             Me
+          </span>
+          <span
+            className={`chip chip-btn ${entry.fault === 'news' ? 'on' : ''}`}
+            onClick={() => onFault(entry, entry.fault === 'news' ? null : 'news')}
+          >
+            ⚡ News
           </span>
         </div>
       )}
