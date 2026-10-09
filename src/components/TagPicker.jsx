@@ -16,32 +16,42 @@ const KIND_COLOR = {
 }
 
 /**
- * Pick from existing tags or type a new one. `value` is an array of tag ids.
+ * Every tag you have ever used, as a palette you tap. Selected ones are
+ * filled; tapping again removes them. Typing is only for a tag that does
+ * not exist yet — the common case is reusing one, so that is the path that
+ * takes no keystrokes.
  */
 export default function TagPicker({ tags, value, onChange, createTag }) {
   const [text, setText] = useState('')
   const [kind, setKind] = useState('strategy')
   const [busy, setBusy] = useState(false)
 
-  const selected = useMemo(
-    () => value.map((id) => tags.find((t) => t.id === id)).filter(Boolean),
-    [value, tags]
-  )
+  const toggle = (id) =>
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
 
-  const suggestions = useMemo(() => {
+  // Selected first so the current state reads at a glance, then the rest
+  // grouped by kind. Typing narrows the palette rather than hiding it.
+  const shown = useMemo(() => {
     const q = text.trim().toLowerCase()
-    return tags
-      .filter((t) => !value.includes(t.id))
+    const order = { strategy: 0, setup: 1, mistake: 2, other: 3 }
+    return [...tags]
       .filter((t) => !q || t.name.toLowerCase().includes(q))
-      .slice(0, 8)
+      .sort((a, b) => {
+        const sel = Number(value.includes(b.id)) - Number(value.includes(a.id))
+        if (sel) return sel
+        return (order[a.kind] ?? 9) - (order[b.kind] ?? 9)
+          || a.name.localeCompare(b.name)
+      })
   }, [tags, value, text])
 
+  const exact = tags.some((t) => t.name.toLowerCase() === text.trim().toLowerCase())
+  const canCreate = Boolean(text.trim()) && !exact
+
   async function add() {
-    const name = text.trim()
-    if (!name || busy) return
+    if (!canCreate || busy) return
     setBusy(true)
     try {
-      const tag = await createTag(name, kind, KIND_COLOR[kind])
+      const tag = await createTag(text.trim(), kind, KIND_COLOR[kind])
       if (tag && !value.includes(tag.id)) onChange([...value, tag.id])
       setText('')
     } finally {
@@ -50,23 +60,38 @@ export default function TagPicker({ tags, value, onChange, createTag }) {
   }
 
   return (
-    <div className="col" style={{ gap: 8 }}>
-      {selected.length > 0 && (
-        <div className="row-wrap" style={{ gap: 6 }}>
-          {selected.map((t) => (
-            <TagChip
-              key={t.id}
-              tag={t}
-              onRemove={() => onChange(value.filter((id) => id !== t.id))}
-            />
-          ))}
+    <div className="tagpick">
+      {tags.length > 0 ? (
+        <>
+          <div className="row tiny faint" style={{ marginBottom: 7 }}>
+            <span>Tap to add or remove</span>
+            <div className="spacer" />
+            {value.length > 0 && <span>{value.length} selected</span>}
+          </div>
+          <div className="row-wrap tagpick-palette">
+            {shown.map((t) => (
+              <TagChip
+                key={t.id}
+                tag={t}
+                active={value.includes(t.id)}
+                onClick={() => toggle(t.id)}
+              />
+            ))}
+            {shown.length === 0 && (
+              <span className="tiny faint">No tag matches “{text.trim()}” — add it below.</span>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="tiny faint" style={{ marginBottom: 7 }}>
+          No tags yet. Create one and it stays here to reuse.
         </div>
       )}
 
-      <div className="row" style={{ gap: 6 }}>
+      <div className="row tagpick-new" style={{ gap: 6 }}>
         <input
           value={text}
-          placeholder="Add a tag…"
+          placeholder={tags.length ? 'Search, or type a new tag…' : 'Your first tag…'}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -80,18 +105,10 @@ export default function TagPicker({ tags, value, onChange, createTag }) {
             <option key={k.value} value={k.value}>{k.label}</option>
           ))}
         </select>
-        <button type="button" className="btn-sm" onClick={add} disabled={!text.trim() || busy}>
-          Add
+        <button type="button" className="btn-sm" onClick={add} disabled={!canCreate || busy}>
+          {busy ? '…' : 'Create'}
         </button>
       </div>
-
-      {suggestions.length > 0 && (
-        <div className="row-wrap" style={{ gap: 6 }}>
-          {suggestions.map((t) => (
-            <TagChip key={t.id} tag={t} onClick={() => onChange([...value, t.id])} />
-          ))}
-        </div>
-      )}
     </div>
   )
 }

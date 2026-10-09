@@ -1203,3 +1203,21 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 .exec.on.warn { background: rgba(245, 185, 66, 0.13); border-color: var(--warn); }
 .exec.on.warn .exec-l { color: var(--warn); }
 @media (max-width: 760px) { .fault-grid { grid-template-columns: 1fr; } }
+
+/* ===== tag palette ================================================== */
+.tagpick-palette { gap: 6px; margin-bottom: 10px; }
+/* Tags are tapped far more often than they are typed, so they get a real
+   target rather than the dense inline-chip size used for display. */
+.tagpick-palette .chip {
+  padding: 6px 11px; font-size: 12.5px; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+}
+.tagpick-palette .chip:hover { border-color: var(--faint); }
+.tagpick-palette .chip:active { transform: scale(0.96); }
+.tagpick-palette .chip.on { font-weight: 700; }
+
+@media (max-width: 760px) {
+  .tagpick-palette .chip { padding: 8px 13px; font-size: 13px; }
+  .tagpick-new { flex-wrap: wrap; }
+  .tagpick-new input { flex: 1 1 100%; }
+}
