@@ -18,7 +18,7 @@ const BLANK = {
   setup: '', reasoning: '', emotions: '', mistakes: '', improvements: '',
   execution: '', execution_notes: '',
   is_shared: true,
-  outcome: '',
+  outcome: '', fault: '',
   model_id: '',
   trade_id: '',
 }
@@ -86,6 +86,7 @@ export default function JournalForm({
       execution_notes: entry.execution_notes || '',
       is_shared: entry.is_shared,
       outcome: entry.outcome || '',
+      fault: entry.fault || '',
       model_id: entry.model_id || '',
       trade_id: entry.trade_id || '',
     })
@@ -208,6 +209,8 @@ export default function JournalForm({
         execution_notes: form.execution_notes || null,
         is_shared: form.is_shared,
         outcome: form.outcome || null,
+        // only meaningful on a loss
+        fault: form.outcome === 'loss' ? (form.fault || null) : null,
         model_id: form.model_id || null,
         trade_id: isBacktest ? null : tradeId,
       }
@@ -395,6 +398,37 @@ export default function JournalForm({
               />
             </Field>
           </div>
+          {form.outcome === 'loss' && (
+            <div className="fault">
+              <div className="tiny faint" style={{ fontWeight: 700, letterSpacing: '0.07em', marginBottom: 8 }}>
+                WHOSE FAULT WAS IT?
+              </div>
+              <div className="fault-grid">
+                <button
+                  type="button"
+                  className={`exec ${form.fault === 'strategy' ? 'on neg' : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, fault: f.fault === 'strategy' ? '' : 'strategy' }))}
+                >
+                  <span className="exec-l">The strategy</span>
+                  <span className="exec-h">
+                    Setup played out properly and still lost. Counts against the model.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`exec ${form.fault === 'mine' ? 'on warn' : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, fault: f.fault === 'mine' ? '' : 'mine' }))}
+                >
+                  <span className="exec-l">Me</span>
+                  <span className="exec-h">
+                    Entered early, sized wrong, moved the stop. Left out of the model's
+                    win rate — it counts against you instead.
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="tiny faint">
             {form.is_shared
               ? (isBacktest

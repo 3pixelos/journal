@@ -11,12 +11,33 @@ import JournalDetail from '../components/JournalDetail'
 
 const pct = (n) => `${(n * 100).toFixed(0)}%`
 
-/** Win rate, plus how it changes when every step was actually followed. */
+/**
+ * A model is scored on the losses it caused, not the ones you did. Losses
+ * marked as your own mistake are held out of the win rate — they say
+ * nothing about whether the setup works — but they are counted and shown,
+ * because a model that only looks good once your errors are removed is
+ * worth knowing about too.
+ */
 function rate(rows) {
   const wins = rows.filter((r) => r.outcome === 'win').length
-  const losses = rows.filter((r) => r.outcome === 'loss').length
-  const decided = wins + losses
-  return { tests: rows.length, wins, losses, decided, winRate: decided ? wins / decided : 0 }
+  const lost = rows.filter((r) => r.outcome === 'loss')
+  const mine = lost.filter((r) => r.fault === 'mine').length
+  const strategyLosses = lost.length - mine
+  const decided = wins + lost.length
+  const judged = wins + strategyLosses
+  return {
+    tests: rows.length,
+    wins,
+    losses: lost.length,
+    mine,
+    strategyLosses,
+    decided,
+    judged,
+    // what the model did, with your errors removed
+    winRate: judged ? wins / judged : 0,
+    // everything that happened, errors included
+    rawWinRate: decided ? wins / decided : 0,
+  }
 }
 
 export default function Backtesting() {
@@ -129,6 +150,13 @@ export default function Backtesting() {
     load()
   }
 
+  async function handleFault(entry, fault) {
+    setEntries((p) => p.map((e) => (e.id === entry.id ? { ...e, fault } : e)))
+    setDetail((d) => (d && d.id === entry.id ? { ...d, fault } : d))
+    await supabase.from('journal_entries').update({ fault }).eq('id', entry.id)
+    load()
+  }
+
   async function handleDelete(entry) {
     const orphans = await deleteJournalEntry(entry.id)
     await Promise.all(orphans.map(removeScreenshot))
@@ -157,9 +185,11 @@ export default function Backtesting() {
               sub={overall.decided < overall.tests
                 ? `${overall.tests - overall.decided} unmarked`
                 : 'all marked'} />
-        <Stat label="Overall win rate" value={overall.decided ? pct(overall.winRate) : '—'}
-              tone={overall.winRate >= 0.5 ? 'pos' : overall.decided ? 'neg' : ''}
-              sub={`${overall.wins}W · ${overall.losses}L`} />
+        <Stat label="Strategy win rate" value={overall.judged ? pct(overall.winRate) : '—'}
+              tone={overall.winRate >= 0.5 ? 'pos' : overall.judged ? 'neg' : ''}
+              sub={overall.mine
+                ? `${overall.wins}W · ${overall.strategyLosses}L · ${overall.mine} of your own excluded`
+                : `${overall.wins}W · ${overall.losses}L`} />
         <Stat label="Models tested" value={perModel.length}
               sub={models.length ? `of ${models.length}` : 'none created yet'} />
       </div>
@@ -179,7 +209,8 @@ export default function Backtesting() {
                   <th>Model</th>
                   <th className="right">Tests</th>
                   <th className="right">W / L</th>
-                  <th className="right">Win rate</th>
+                  <th className="right">Your errors</th>
+                  <th className="right">Strategy win rate</th>
                   <th className="right">Every step followed</th>
                 </tr>
               </thead>
@@ -202,10 +233,20 @@ export default function Backtesting() {
                       </div>
                     </td>
                     <td className="right mono small">{r.tests}</td>
-                    <td className="right mono small">{r.wins} / {r.losses}</td>
+                    <td className="right mono small">{r.wins} / {r.strategyLosses}</td>
+                    <td className="right mono small">
+                      {r.mine
+                        ? <span style={{ color: 'var(--warn)', fontWeight: 700 }}>{r.mine}</span>
+                        : <span className="faint">—</span>}
+                    </td>
                     <td className={`right mono ${r.winRate >= 0.5 ? 'pos' : 'neg'}`}
                         style={{ fontWeight: 750, fontSize: 15 }}>
-                      {r.decided ? pct(r.winRate) : '—'}
+                      {r.judged ? pct(r.winRate) : '—'}
+                      {r.mine > 0 && (
+                        <div className="tiny faint" style={{ fontWeight: 500 }}>
+                          {pct(r.rawWinRate)} counting your errors
+                        </div>
+                      )}
                     </td>
                     <td className="right small">
                       {!r.hasSteps ? (
@@ -311,6 +352,7 @@ export default function Backtesting() {
           paths={attachments[detail.id] || []}
           onClose={() => setDetail(null)}
           onMark={handleMark}
+          onFault={handleFault}
           onEdit={(en) => { setDetail(null); setEditing(en); setShowForm(true) }}
         />
       )}

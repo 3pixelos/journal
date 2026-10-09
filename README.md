@@ -42,6 +42,7 @@ another user's session physically cannot read a row.
    - [`supabase/009_backtesting.sql`](supabase/009_backtesting.sql) — backtesting entries
    - [`supabase/011_account_currency.sql`](supabase/011_account_currency.sql) — account currency and USD conversion
    - [`supabase/012_restate_currency.sql`](supabase/012_restate_currency.sql) — restate history when the currency changes
+   - [`supabase/013_loss_fault.sql`](supabase/013_loss_fault.sql) — whose fault a loss was
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -171,6 +172,11 @@ actually got out. Give it the balance before and it shows what the account becam
 the steps you followed, how it resolved, charts and notes. No contract, no prices, no
 P&L, and nothing reaches the calendar. The page leads with win rate per model, and
 splits each one by whether every step was actually followed.
+
+A loss asks whose fault it was. Losses you mark as your own error are held out of the
+model's win rate — they say nothing about whether the setup works — and counted under
+"your errors" instead, with the unadjusted rate shown underneath so the two never get
+confused.
 
 **Account currency** — NQ and MNQ settle in US dollars, so an account denominated in
 anything else sees a converted figure arrive. Set your currency and a USD rate in

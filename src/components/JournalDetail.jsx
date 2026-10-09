@@ -11,7 +11,7 @@ import { Modal, TagChip, Lightbox, Empty } from './ui'
 /** The whole entry in a popup: pictures, every written section, and — if it's
  *  yours — marking it win/loss, flipping visibility, or opening the editor. */
 export default function JournalDetail({
-  entry, trade, author, tags = [], paths = [], isMine, onClose, onEdit, onMark,
+  entry, trade, author, tags = [], paths = [], isMine, onClose, onEdit, onMark, onFault,
 }) {
   const [zoom, setZoom] = useState(null)
   const [model, setModel] = useState(null)
@@ -65,6 +65,16 @@ export default function JournalDetail({
         </div>
         <div className="spacer" />
         <OutcomeBadge outcome={entry.outcome} />
+        {entry.outcome === 'loss' && entry.fault && (
+          <span className="chip" style={{
+            color: entry.fault === 'mine' ? 'var(--warn)' : 'var(--neg)',
+            borderColor: 'transparent',
+            background: entry.fault === 'mine' ? 'rgba(245,185,66,0.14)' : 'var(--neg-soft)',
+            fontWeight: 700,
+          }}>
+            {entry.fault === 'mine' ? 'My mistake' : "Strategy's fault"}
+          </span>
+        )}
         <span className="chip">{entry.is_shared ? '◉ Public' : '🔒 Private'}</span>
       </div>
 
@@ -101,6 +111,24 @@ export default function JournalDetail({
             onClick={() => onMark(entry, entry.outcome, !entry.is_shared)}
           >
             Make {entry.is_shared ? 'private' : 'public'}
+          </span>
+        </div>
+      )}
+
+      {isMine && entry.outcome === 'loss' && onFault && (
+        <div className="row-wrap" style={{ gap: 6 }}>
+          <span className="tiny faint">Whose fault:</span>
+          <span
+            className={`chip chip-btn ${entry.fault === 'strategy' ? 'on' : ''}`}
+            onClick={() => onFault(entry, entry.fault === 'strategy' ? null : 'strategy')}
+          >
+            The strategy
+          </span>
+          <span
+            className={`chip chip-btn ${entry.fault === 'mine' ? 'on' : ''}`}
+            onClick={() => onFault(entry, entry.fault === 'mine' ? null : 'mine')}
+          >
+            Me
           </span>
         </div>
       )}
