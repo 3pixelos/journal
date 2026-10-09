@@ -113,7 +113,12 @@ export default function Backtesting() {
   // ---- per-model win rate, the point of the whole page ---------------
   const perModel = useMemo(() => {
     const out = models.map((m) => {
-      const rows = entries.filter((e) => e.model_id === m.id)
+      // Stood-aside days are dropped here rather than inside rate(), so no
+      // derived bucket below can pick them up — a day you did not trade has
+      // nothing to say about whether the model works or where you slipped.
+      const rows = entries.filter(
+        (e) => e.model_id === m.id && e.outcome !== 'no_trade'
+      )
       const total = m.checks.length
       // only meaningful once the model actually has steps to follow
       const clean = total
@@ -190,12 +195,14 @@ export default function Backtesting() {
       </div>
 
       <div className="grid grid-4">
-        <Stat label="Tests logged" value={overall.tests}
-              sub={overall.decided < overall.tests
-                ? `${overall.tests - overall.decided} unmarked`
-                : 'all marked'} />
+        <Stat label="Days reviewed" value={overall.tests + overall.avoided}
+              sub={[
+                `${overall.tests} tested`,
+                overall.avoided ? `${overall.avoided} stood aside` : null,
+                overall.decided < overall.tests ? `${overall.tests - overall.decided} unmarked` : null,
+              ].filter(Boolean).join(' · ')} />
         <Stat label="Days stood aside" value={overall.avoided}
-              sub={overall.avoided ? 'kept out of the win rate' : 'none logged yet'} />
+              sub={overall.avoided ? 'never counted against a model' : 'none logged yet'} />
         <Stat label="Strategy win rate" value={overall.judged ? pct(overall.winRate) : '—'}
               tone={overall.winRate >= 0.5 ? 'pos' : overall.judged ? 'neg' : ''}
               sub={[
