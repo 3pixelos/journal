@@ -358,9 +358,9 @@ export default function JournalForm({
             value={form}
             onChange={(v) => setForm((f) => ({ ...f, ...v }))}
             rows={2}
-            // nothing was risked, so there is no mental state, no mistake and
-            // nothing to do differently — only what the setup was and why
-            omit={isBacktest ? ['emotions', 'mistakes', 'improvements'] : []}
+            // nothing was risked, so there is no mental state to record; what
+            // went wrong and what to change still apply to a test
+            omit={isBacktest ? ['emotions'] : []}
           />
           <Field label="Tags">
             <TagPicker tags={tags} value={tagIds} onChange={setTagIds} createTag={createTag} />
