@@ -44,8 +44,6 @@ function rate(all) {
     judged,
     // what the model did, with your errors removed
     winRate: judged ? wins / judged : 0,
-    // everything that happened, errors included
-    rawWinRate: decided ? wins / decided : 0,
   }
 }
 
@@ -262,11 +260,6 @@ export default function Backtesting() {
                     <td className={`right mono ${r.winRate >= 0.5 ? 'pos' : 'neg'}`}
                         style={{ fontWeight: 750, fontSize: 15 }}>
                       {r.judged ? pct(r.winRate) : '—'}
-                      {r.mine > 0 && (
-                        <div className="tiny faint" style={{ fontWeight: 500 }}>
-                          {pct(r.rawWinRate)} counting your errors
-                        </div>
-                      )}
                       {r.news > 0 && (
                         <div className="tiny faint" style={{ fontWeight: 500 }}>
                           ⚡ {r.news} to news

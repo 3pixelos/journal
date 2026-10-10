@@ -177,8 +177,7 @@ splits each one by whether every step was actually followed.
 
 A loss asks whose fault it was. Losses you mark as your own error are held out of the
 model's win rate — they say nothing about whether the setup works — and counted under
-"your errors" instead, with the unadjusted rate shown underneath so the two never get
-confused. A loss can also be blamed on high-impact news — still a loss for the model,
+"your errors" instead, and counted in their own column. A loss can also be blamed on high-impact news — still a loss for the model,
 but marked with a red band across the card so a run of red reads as "the data hit"
 rather than "the edge is gone".
 
