@@ -1309,3 +1309,14 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 .alert.warnbox {
   background: rgba(245, 185, 66, 0.12); border-color: transparent; color: var(--warn);
 }
+
+/* Stated in the card footer as well as banded over the chart, so a card
+   with no screenshot still says why it lost. */
+.jcard-tag.fault-mine {
+  color: var(--warn); background: rgba(245, 185, 66, 0.15);
+  padding: 1px 7px; border-radius: 99px; font-size: 10.5px;
+}
+.jcard-tag.fault-news {
+  color: var(--neg); background: var(--neg-soft);
+  padding: 1px 7px; border-radius: 99px; font-size: 10.5px;
+}

@@ -15,6 +15,15 @@ export function OutcomeTag({ outcome }) {
   return <span className={`jcard-tag ${cls}`}>{arrow} {label}</span>
 }
 
+/** Why a loss happened, stated in the footer so it is readable even on a
+ *  card with no chart behind it to carry the band. */
+export function FaultTag({ entry }) {
+  if (entry.outcome !== 'loss' || !entry.fault) return null
+  if (entry.fault === 'mine') return <span className="jcard-tag fault-mine">⚠ My mistake</span>
+  if (entry.fault === 'news') return <span className="jcard-tag fault-news">⚡ News</span>
+  return null
+}
+
 /** Derive an outcome from the linked trade when none was set by hand. */
 export function effectiveOutcome(entry, trade) {
   if (entry.outcome) return entry.outcome
@@ -72,9 +81,10 @@ export default function JournalCard({ entry, trade, author, paths = [], isMine, 
 
       <div className="jcard-foot">
         <div className="jcard-left">
-          <div className="row" style={{ gap: 7, minWidth: 0 }}>
+          <div className="row-wrap" style={{ gap: 7, minWidth: 0 }}>
             <span className="jcard-sym">{symbol}</span>
             <OutcomeTag outcome={outcome} />
+            <FaultTag entry={entry} />
           </div>
           <div className="jcard-date">
             {tinyDate(entry.entry_date)}
