@@ -4,7 +4,7 @@ import { Modal, Empty } from './ui'
 
 /** A day's trades in a popup, from the calendar or the dashboard week strip. */
 export default function DayModal({
-  date, trades, onClose, onPick, onLog, stoodAside, tags = [], tagLinks = {},
+  date, trades, onClose, onPick, onLog, stoodAside, dayFault, tags = [], tagLinks = {},
 }) {
   const s = stats(trades)
 
@@ -32,6 +32,14 @@ export default function DayModal({
         <div className="jsection">
           <div className="k">Why I stood aside</div>
           <div className="v">{stoodAside.reasoning}</div>
+        </div>
+      )}
+
+      {dayFault && (
+        <div className={`alert ${dayFault === 'mine' ? 'warnbox' : 'error'}`}>
+          {dayFault === 'mine'
+            ? '⚠ You marked this loss as your own mistake.'
+            : '⚡ High-impact news took this one out.'}
         </div>
       )}
 

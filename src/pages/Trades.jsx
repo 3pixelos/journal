@@ -34,6 +34,7 @@ export default function Trades() {
 
   const [trades, setTrades] = useState([])
   const [stoodAside, setStoodAside] = useState({})
+  const [dayFault, setDayFault] = useState({})
   const [tagLinks, setTagLinks] = useState({})
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
@@ -56,17 +57,24 @@ export default function Trades() {
         .eq('user_id', user.id)
         .order('trade_date', { ascending: false })
         .order('created_at', { ascending: false }),
-      // days reviewed and passed on — they carry no trade, so the calendar
-      // would otherwise show them as blank
+      // days reviewed and passed on (no trade, so otherwise blank) and the
+      // reason a red day went red
       supabase
         .from('journal_entries')
-        .select('id, entry_date, reasoning, title')
+        .select('id, entry_date, reasoning, title, outcome, fault')
         .eq('user_id', user.id)
-        .eq('outcome', 'no_trade'),
+        .or('outcome.eq.no_trade,fault.in.(mine,news)'),
     ])
     const rows = data || []
     setTrades(rows)
-    setStoodAside(Object.fromEntries((aside || []).map((e) => [e.entry_date, e])))
+    const marks = aside || []
+    setStoodAside(Object.fromEntries(
+      marks.filter((e) => e.outcome === 'no_trade').map((e) => [e.entry_date, e])
+    ))
+    setDayFault(Object.fromEntries(
+      marks.filter((e) => e.outcome === 'loss' && (e.fault === 'mine' || e.fault === 'news'))
+        .map((e) => [e.entry_date, e.fault])
+    ))
     setTagLinks(await loadTagLinks('trade_tags', 'trade_id', rows.map((t) => t.id)))
     setLoading(false)
   }, [user])
@@ -207,6 +215,7 @@ export default function Trades() {
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
               stoodAside={stoodAside}
+              dayFault={dayFault}
             />
             {monthTrades.length === 0 && (
               <div className="small muted center" style={{ marginTop: 14 }}>
@@ -240,6 +249,7 @@ export default function Trades() {
           date={selectedDay}
           trades={dayTrades}
           stoodAside={stoodAside[selectedDay]}
+          dayFault={dayFault[selectedDay]}
           onClose={() => setSelectedDay(null)}
           onPick={(t) => { setSelectedDay(null); setEditing(t); setShowForm(true) }}
           onLog={() => { const d = selectedDay; setSelectedDay(null); openNew(d) }}

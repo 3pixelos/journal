@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [trades, setTrades] = useState([])
   const [tagLinks, setTagLinks] = useState({})
   const [stoodAside, setStoodAside] = useState({})
+  const [dayFault, setDayFault] = useState({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [formDate, setFormDate] = useState(null)
@@ -123,9 +124,10 @@ export default function Dashboard() {
         pnl: map[date]?.pnl ?? 0,
         count: map[date]?.trades ?? 0,
         stood: Boolean(stoodAside[date]),
+        fault: dayFault[date] || null,
       }
     })
-  }, [trades, today, stoodAside])
+  }, [trades, today, stoodAside, dayFault])
 
   // which setups actually pay, over the selected period
   const byTag = useMemo(() => {
@@ -269,6 +271,7 @@ export default function Dashboard() {
               has && d.pnl > 0 ? 'win' : '',
               has && d.pnl < 0 ? 'loss' : '',
               !has && d.stood ? 'stood' : '',
+              has && d.fault ? `flag-${d.fault}` : '',
               d.date === today ? 'today' : '',
             ].filter(Boolean).join(' ')
             return (
@@ -279,7 +282,16 @@ export default function Dashboard() {
                     <span className={`cal-pnl ${d.pnl > 0 ? 'pos' : 'neg'}`}>
                       {money(d.pnl, { sign: true, decimals: 0 })}
                     </span>
-                    <span className="cal-meta">{d.count} trade{d.count === 1 ? '' : 's'}</span>
+                    {d.fault ? (
+                      <span className={`cal-flag ${d.fault}`}>
+                        <span className="full">
+                          {d.fault === 'mine' ? '⚠ My mistake' : '⚡ News'}
+                        </span>
+                        <span className="abbr">{d.fault === 'mine' ? '⚠' : '⚡'}</span>
+                      </span>
+                    ) : (
+                      <span className="cal-meta">{d.count} trade{d.count === 1 ? '' : 's'}</span>
+                    )}
                   </>
                 ) : d.stood ? (
                   <span className="cal-stood">⊘ No trade</span>
@@ -348,6 +360,7 @@ export default function Dashboard() {
           date={openDay}
           trades={trades.filter((t) => t.trade_date === openDay)}
           stoodAside={stoodAside[openDay]}
+          dayFault={dayFault[openDay]}
           onClose={() => setOpenDay(null)}
           onPick={(t) => { setOpenDay(null); setFormDate(t); setShowForm(true) }}
           onLog={() => { setFormDate({ trade_date: openDay }); setOpenDay(null); setShowForm(true) }}
