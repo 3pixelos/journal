@@ -174,7 +174,9 @@ export default function JournalForm({
           // re-derive them from prices
           stop_points: sized.stopPoints || null,
           target_points: sized.targetPoints || null,
-          result: size.result,
+          // '' is not one of the values the column allows; a P&L taken
+          // straight from the broker legitimately has no level to name
+          result: size.result || null,
           fees: Number(size.fees) || 0,
           // pnl is account currency — goals, limits and the calendar are all
           // measured in it; pnl_usd keeps the contract figure alongside
