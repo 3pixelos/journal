@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { useTitle, useTags } from '../lib/hooks'
+import { useTitle, useTags, useCountUp } from '../lib/hooks'
 import { loadTagLinks } from '../lib/api'
 import {
   money, pnlClass, shortDate, tinyDate, todayStr, startOfWeek, endOfWeek,
@@ -163,6 +163,7 @@ export default function Dashboard() {
       zeroAt: Math.min(Math.max(dHi / (dHi - dLo), 0), 1),
     }
   }, [curve])
+  const shownNet = useCountUp(s.net)
   const name = profile?.display_name || 'trader'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
@@ -190,7 +191,9 @@ export default function Dashboard() {
             <div className="hero-label">
               {period === 'day' ? 'Today' : period === 'week' ? 'This week' : 'This month'}
             </div>
-            <div className={`hero-value ${pnlClass(s.net)}`}>{money(s.net, { sign: true })}</div>
+            <div className={`hero-value ${pnlClass(s.net)}`}>
+              {money(shownNet, { sign: true })}
+            </div>
             <div className="hero-sub">
               {s.count} trade{s.count === 1 ? '' : 's'} · {(s.winRate * 100).toFixed(0)}% win rate
               {period !== 'day' && ` · ${tinyDate(range.from)} – ${tinyDate(range.to)}`}

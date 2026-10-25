@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { PresenceBar, SidebarPresence } from './Presence'
 import Avatar from './Avatar'
+import Backdrop from './Backdrop'
 
 // `short` keeps the phone bar legible — six full labels do not fit at 375px.
 const LINKS = [
@@ -31,7 +32,9 @@ export default function Layout() {
     ?? (pathname === '/settings' ? 'Settings' : 'Trading Journal')
 
   return (
-    <div className="shell">
+    <>
+      <Backdrop />
+      <div className="shell">
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-dot">TJ</span> Trading Journal
@@ -82,7 +85,8 @@ export default function Layout() {
             {theme === 'light' ? '☾ Dark' : '☀ Light'}
           </button>
         </header>
-        <main className="content">
+        {/* keyed on the route so each page plays its entrance */}
+        <main className="content" key={pathname}>
           <Outlet />
         </main>
       </div>
@@ -99,6 +103,7 @@ export default function Layout() {
           Settings
         </NavLink>
       </nav>
-    </div>
+      </div>
+    </>
   )
 }

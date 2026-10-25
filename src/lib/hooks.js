@@ -163,3 +163,41 @@ export function useModels() {
 
   return { models, loading, reload: load, createModel, deleteModel }
 }
+
+/**
+ * Count a figure up to its value on mount and whenever it changes.
+ *
+ * Eased rather than linear so it decelerates into the real number, and
+ * skipped entirely under reduced motion — an animated P&L is decoration,
+ * and the true figure must never be more than a frame away.
+ */
+export function useCountUp(target, ms = 700) {
+  const to = Number(target) || 0
+  const [value, setValue] = useState(to)
+  const from = useRef(to)
+
+  useEffect(() => {
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const start = from.current
+    if (reduced || start === to) {
+      from.current = to
+      setValue(to)
+      return
+    }
+
+    let raf
+    const t0 = performance.now()
+    const tick = (now) => {
+      const p = Math.min((now - t0) / ms, 1)
+      // easeOutExpo
+      const e = p === 1 ? 1 : 1 - Math.pow(2, -10 * p)
+      setValue(start + (to - start) * e)
+      if (p < 1) raf = requestAnimationFrame(tick)
+      else from.current = to
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [to, ms])
+
+  return value
+}
