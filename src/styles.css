@@ -1322,88 +1322,6 @@ th { font-weight: 700; letter-spacing: 0.08em; }
 }
 
 /* =====================================================================
-   AMBIENT BACKDROP
-   ===================================================================== */
-.backdrop {
-  position: fixed; inset: 0; z-index: 0;
-  overflow: hidden; pointer-events: none;
-  contain: strict;
-}
-.shell { position: relative; z-index: 1; }
-
-.orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(72px);
-  will-change: transform;
-  opacity: 0.9;
-}
-.orb-a {
-  width: 44vw; height: 44vw; min-width: 420px; min-height: 420px;
-  top: -14%; left: -10%;
-  background: radial-gradient(circle at 50% 50%, rgba(47, 224, 138, 0.62), transparent 66%);
-  animation: drift-a 54s ease-in-out infinite;
-}
-.orb-b {
-  width: 38vw; height: 38vw; min-width: 360px; min-height: 360px;
-  bottom: -16%; right: -8%;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 90, 90, 0.48), transparent 66%);
-  animation: drift-b 67s ease-in-out infinite;
-}
-.orb-c {
-  width: 30vw; height: 30vw; min-width: 300px; min-height: 300px;
-  top: 32%; left: 46%;
-  background: radial-gradient(circle at 50% 50%, rgba(140, 160, 255, 0.4), transparent 68%);
-  animation: drift-c 81s ease-in-out infinite;
-}
-:root[data-theme='light'] .orb { opacity: 0.45; filter: blur(90px); }
-
-/* a barely-there grid, so the empty space has structure */
-.grid-veil {
-  position: absolute; inset: -2px;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 120% 80% at 50% 0%, #000 35%, transparent 78%);
-  -webkit-mask-image: radial-gradient(ellipse 120% 80% at 50% 0%, #000 35%, transparent 78%);
-}
-:root[data-theme='light'] .grid-veil {
-  background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.032) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.032) 1px, transparent 1px);
-}
-
-/* film grain stops the big blurs from banding on cheap panels */
-.grain {
-  position: absolute; inset: 0; opacity: 0.16;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-}
-:root[data-theme='light'] .grain { opacity: 0.07; }
-
-@keyframes drift-a {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  33%      { transform: translate3d(8vw, 6vh, 0) scale(1.12); }
-  66%      { transform: translate3d(-4vw, 10vh, 0) scale(0.95); }
-}
-@keyframes drift-b {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  40%      { transform: translate3d(-10vw, -8vh, 0) scale(1.15); }
-  75%      { transform: translate3d(5vw, -3vh, 0) scale(0.92); }
-}
-@keyframes drift-c {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(-14vw, 8vh, 0) scale(1.2); }
-}
-
-/* panels sit on the backdrop rather than hiding it */
-.card, .hero { backdrop-filter: blur(7px) saturate(118%); }
-.sidebar {
-  background: color-mix(in srgb, var(--bg-soft) 82%, transparent);
-  backdrop-filter: blur(14px) saturate(120%);
-}
-
-/* =====================================================================
    MOTION — entrances, and the small reactions that make it feel alive
    ===================================================================== */
 @keyframes rise {
@@ -1522,7 +1440,7 @@ h1, h2, h3, h4, .hero-value, .stat .value {
    all goes, including the drifting backdrop.
    ===================================================================== */
 @media (prefers-reduced-motion: reduce) {
-  .orb { animation: none !important; }
+  .ridge, .mist, .stars i, .moon { animation: none !important; }
   .hero-bar > span::after { display: none; }
   .content > *, .content > .col > *, .grid > *, .gallery > *,
   .cal-week, .modal, .overlay, .news-streak span {
@@ -1531,13 +1449,8 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   .stat:hover, .hero:hover, .cal-cell:hover, .jcard:hover { transform: none; }
 }
 
-/* A blurred 44vw layer is cheap on a laptop and not always cheap on a
-   phone. Two orbs instead of three, and a tighter blur radius. */
 @media (max-width: 760px) {
-  .orb-c { display: none; }
-  .orb { filter: blur(56px); }
-  .grid-veil { background-size: 40px 40px; }
-  .card, .hero { backdrop-filter: blur(5px) saturate(112%); }
+  .card, .hero { backdrop-filter: blur(5px); }
 }
 
 /* Some Windows GPUs fall back to software for backdrop-filter; without it
@@ -1545,4 +1458,118 @@ h1, h2, h3, h4, .hero-value, .stat .value {
 @supports not (backdrop-filter: blur(1px)) {
   .card, .hero { background: var(--panel); }
   .sidebar { background: var(--bg-soft); }
+}
+
+/* =====================================================================
+   MOUNTAIN BACKDROP — black and white only
+   ===================================================================== */
+.backdrop {
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden; pointer-events: none;
+}
+.shell { position: relative; z-index: 1; }
+
+.sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, #0a0a0c 0%, #121216 46%, #1b1c21 74%, #232429 100%);
+}
+:root[data-theme='light'] .sky {
+  background: linear-gradient(to bottom, #ffffff 0%, #f4f5f7 48%, #e9ebee 76%, #dddfe4 100%);
+}
+
+/* A cold white disc sitting low, just above the far ridge — the ranges are
+   painted after it, so they occlude its base like a real moonrise. Kept off
+   the top of the screen, where it collided with the header controls. */
+.moon {
+  /* anchored to the ridge line rather than the top of the window, so it
+     always rises out of the mountains instead of landing behind a card
+     on whichever page happens to be taller */
+  position: absolute; bottom: 40%; right: 20%;
+  width: 76px; height: 76px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%, #ffffff, #d6d8dd 58%, #9aa0aa 100%);
+  box-shadow: 0 0 50px 16px rgba(255, 255, 255, 0.08), 0 0 140px 50px rgba(255, 255, 255, 0.035);
+  animation: moon-rise 120s ease-in-out infinite;
+}
+:root[data-theme='light'] .moon {
+  background: radial-gradient(circle at 38% 36%, #ffffff, #f2f3f5 60%, #e3e5e9 100%);
+  box-shadow: 0 0 70px 30px rgba(255, 255, 255, 0.8);
+}
+@keyframes moon-rise {
+  0%, 100% { transform: translateY(10px) }
+  50%      { transform: translateY(-18px) }
+}
+
+.stars { position: absolute; inset: 0 0 42% 0; }
+.stars i {
+  position: absolute; border-radius: 50%; background: #fff;
+  animation: twinkle 4.5s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.18; transform: scale(0.8) }
+  50%      { opacity: 0.85; transform: scale(1.25) }
+}
+:root[data-theme='light'] .stars { display: none; }
+
+/* --- the ranges ---------------------------------------------------- */
+.ridge {
+  position: absolute; left: 0; bottom: 0;
+  width: 200%; height: 62%;
+  will-change: transform;
+  animation-name: scroll-ridge;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.ridge svg { width: 100%; height: 100%; display: block; }
+.ridge path { fill: currentColor; }
+
+/* far is lightest and highest; each step forward is darker and lower, which
+   is what sells the distance */
+.ridge-far  { color: #2b2d34; height: 64%; opacity: 0.95; }
+.ridge-mid  { color: #212329; height: 58%; }
+.ridge-near { color: #17181d; height: 52%; }
+.ridge-fore { color: #0d0e11; height: 46%; }
+
+:root[data-theme='light'] .ridge-far  { color: #c7cad1; }
+:root[data-theme='light'] .ridge-mid  { color: #b2b6bf; }
+:root[data-theme='light'] .ridge-near { color: #9ba0ab; }
+:root[data-theme='light'] .ridge-fore { color: #848a96; }
+
+@keyframes scroll-ridge {
+  from { transform: translateX(0) }
+  to   { transform: translateX(-50%) }
+}
+
+/* --- mist between the ranges --------------------------------------- */
+.mist {
+  position: absolute; left: -50%; width: 200%;
+  height: 170px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.055) 45%, transparent);
+  filter: blur(14px);
+  will-change: transform;
+}
+.mist-1 { bottom: 26%; animation: mist-drift 46s linear infinite; }
+.mist-2 { bottom: 13%; height: 120px; opacity: 0.7;
+          animation: mist-drift 29s linear infinite reverse; }
+:root[data-theme='light'] .mist {
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.75) 45%, transparent);
+}
+@keyframes mist-drift {
+  from { transform: translateX(-12%) }
+  to   { transform: translateX(12%) }
+}
+
+.grain {
+  position: absolute; inset: 0; opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+:root[data-theme='light'] .grain { opacity: 0.06; }
+
+@media (max-width: 760px) {
+  /* On a phone the content scrolls over the fixed backdrop, so a bright
+     disc will always end up peeking between two cards at some scroll
+     position and reading as a glitch. The ranges carry the scene alone. */
+  .moon { display: none; }
+  .ridge { height: 48%; }
+  .ridge-far { height: 50%; }
+  .mist { height: 110px; }
 }
