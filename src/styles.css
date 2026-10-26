@@ -1366,7 +1366,7 @@ th { font-weight: 700; letter-spacing: 0.08em; }
    reads as a transition rather than a repaint */
 .content { animation: page-in 0.5s ease both; }
 @keyframes page-in {
-  from { opacity: 0; transform: translateX(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
 
@@ -1460,18 +1460,34 @@ h1, h2, h3, h4, .hero-value, .stat .value {
 :focus-visible { outline: 2px solid var(--pos); outline-offset: 2px; }
 
 /* =====================================================================
-   Everything above is decoration. If the system asks for less motion it
-   all goes, including the drifting backdrop.
+   Everything above is decoration. data-motion="off" removes all of it.
+   Resolved in JS from the saved preference and the OS setting, so there is
+   a single flag here rather than a media query nothing can override.
+   Written flat rather than nested — nesting is not transpiled here and a
+   browser without it would silently keep animating.
    ===================================================================== */
-@media (prefers-reduced-motion: reduce) {
-  .ridge, .mist, .stars i, .moon { animation: none !important; }
-  .hero-bar > span::after { display: none; }
-  .content, .content > *, .content > .col > *, .grid > *, .gallery > *,
-  .cal-week, .modal, .overlay, .news-streak span, .navlink.active::before {
-    animation: none !important;
-  }
-  .stat:hover, .hero:hover, .cal-cell:hover, .jcard:hover { transform: none; }
+:root[data-motion='off'] .ridge,
+:root[data-motion='off'] .mist,
+:root[data-motion='off'] .stars i,
+:root[data-motion='off'] .moon,
+:root[data-motion='off'] .content,
+:root[data-motion='off'] .content > *,
+:root[data-motion='off'] .content > .col > *,
+:root[data-motion='off'] .grid > *,
+:root[data-motion='off'] .gallery > *,
+:root[data-motion='off'] .cal-week,
+:root[data-motion='off'] .modal,
+:root[data-motion='off'] .overlay,
+:root[data-motion='off'] .news-streak span,
+:root[data-motion='off'] .navlink.active::before {
+  animation: none !important;
 }
+:root[data-motion='off'] .hero-bar > span::after { display: none; }
+:root[data-motion='off'] .pagefx { display: none; }
+:root[data-motion='off'] .stat:hover,
+:root[data-motion='off'] .hero:hover,
+:root[data-motion='off'] .cal-cell:hover,
+:root[data-motion='off'] .jcard:hover { transform: none; }
 
 @media (max-width: 760px) {
   .card, .hero { backdrop-filter: blur(5px); }
@@ -1635,3 +1651,91 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   font-size: 12px; line-height: 1.5; color: var(--neg);
   white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto;
 }
+
+/* =====================================================================
+   PAGE CHANGE — lightning, flash, streaking stars
+   ===================================================================== */
+.pagefx {
+  position: fixed; inset: 0; z-index: 60;
+  pointer-events: none; overflow: hidden;
+}
+
+/* the room lights up for a frame or two */
+.fx-flash {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 20%, #fff, transparent 70%);
+  opacity: 0;
+  animation: fx-flash 520ms ease-out both;
+}
+@keyframes fx-flash {
+  0%   { opacity: 0 }
+  7%   { opacity: 0.30 }
+  13%  { opacity: 0.06 }
+  21%  { opacity: 0.22 }
+  34%  { opacity: 0.03 }
+  100% { opacity: 0 }
+}
+
+.fx-bolt {
+  position: absolute; top: -4%;
+  width: 92px; height: 62%;
+  fill: #fff;
+  opacity: 0;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.95))
+          drop-shadow(0 0 40px rgba(190, 215, 255, 0.6));
+  animation: fx-bolt 560ms steps(1, end) both;
+}
+@keyframes fx-bolt {
+  0%   { opacity: 0; transform: scaleY(0.2) }
+  8%   { opacity: 1; transform: scaleY(1) }
+  16%  { opacity: 0 }
+  26%  { opacity: 0.9 }
+  34%  { opacity: 0 }
+  44%  { opacity: 0.55 }
+  52%  { opacity: 0 }
+  100% { opacity: 0 }
+}
+
+/* stars pulled across as the page arrives */
+.fx-star {
+  position: absolute; left: -260px; height: 2px;
+  background: linear-gradient(90deg, transparent, #fff 62%, #fff);
+  border-radius: 99px;
+  box-shadow: 0 0 10px 1px rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  animation-name: fx-star;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+  animation-fill-mode: both;
+}
+@keyframes fx-star {
+  0%   { opacity: 0; transform: translateX(0) }
+  12%  { opacity: 1 }
+  80%  { opacity: 1 }
+  100% { opacity: 0; transform: translateX(calc(100vw + 320px)) }
+}
+
+:root[data-theme='light'] .fx-flash {
+  background: radial-gradient(ellipse 80% 60% at 50% 20%, #9fb4d8, transparent 70%);
+}
+:root[data-theme='light'] .fx-bolt {
+  fill: #5a6b8c;
+  filter: drop-shadow(0 0 14px rgba(90, 107, 140, 0.55));
+}
+:root[data-theme='light'] .fx-star {
+  background: linear-gradient(90deg, transparent, #7c8aa6 62%, #7c8aa6);
+  box-shadow: 0 0 8px 1px rgba(124, 138, 166, 0.6);
+}
+
+@media (max-width: 760px) {
+  .fx-bolt:nth-of-type(3) { display: none; }
+  .fx-star { height: 1.5px; }
+}
+
+/* =====================================================================
+   NO JITTER ON ROUTE CHANGE
+   Windows keeps a permanent scrollbar. A short page has none and a long
+   page does, so every navigation shifted the layout sideways by its
+   width. Reserving the gutter keeps the column still.
+   ===================================================================== */
+html { scrollbar-gutter: stable; }
+body { overflow-x: hidden; }

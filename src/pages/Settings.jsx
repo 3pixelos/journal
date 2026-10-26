@@ -8,6 +8,7 @@ import { Card, Field, Alert, DeleteButton, TagChip, Empty } from '../components/
 import Avatar from '../components/Avatar'
 import ModelsManager from '../components/ModelsManager'
 import CurrencySwitch from '../components/CurrencySwitch'
+import { MOTION_OPTIONS, getMotionPref, setMotionPref, systemPrefersReduced } from '../lib/motion'
 import { AVATARS } from '../lib/avatars'
 import { KINDS } from '../components/TagPicker'
 
@@ -25,6 +26,7 @@ export default function Settings() {
 
   const [newAccount, setNewAccount] = useState({ name: '', broker: '', starting_balance: '' })
   const [pw, setPw] = useState({ next: '', confirm: '' })
+  const [motion, setMotion] = useState(getMotionPref)
 
   useEffect(() => {
     setName(profile?.display_name || '')
@@ -204,6 +206,30 @@ export default function Settings() {
           </div>
           <button className="btn-primary" disabled={!newAccount.name.trim()}>Add account</button>
         </form>
+      </Card>
+
+      <Card title="Animations">
+        <div className="row-wrap" style={{ gap: 8 }}>
+          {MOTION_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              className={`exec ${motion === o.value ? 'on pos' : ''}`}
+              style={{ flex: '1 1 200px' }}
+              onClick={() => { setMotion(o.value); setMotionPref(o.value) }}
+            >
+              <span className="exec-l">{o.label}</span>
+              <span className="exec-h">{o.hint}</span>
+            </button>
+          ))}
+        </div>
+        <div className="small faint mt">
+          {systemPrefersReduced()
+            ? 'Your system is set to reduce motion. On "System" that switches every '
+              + 'animation off, which looks the same as them being broken — "Full" '
+              + 'overrides it.'
+            : 'Your system is not asking to reduce motion, so "System" and "Full" '
+              + 'behave the same here.'}
+        </div>
       </Card>
 
       <ModelsManager />

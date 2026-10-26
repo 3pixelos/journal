@@ -4,10 +4,12 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { PresenceProvider } from './context/PresenceContext'
+import { applyMotion } from './lib/motion'
 import './styles.css'
 
 const saved = localStorage.getItem('tj-theme')
 if (saved === 'light') document.documentElement.dataset.theme = 'light'
+applyMotion()
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
