@@ -159,14 +159,24 @@ h3 { font-size: 15px; }
 
 .topbar {
   display: flex; align-items: center; gap: 12px;
-  padding: 15px 24px;
+  padding-block: 15px;
+  /* full-bleed border, contents aligned to the centred content column */
+  padding-inline: calc(max(0px, (100% - 1560px) / 2) + 24px);
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: saturate(140%) blur(10px);
   position: sticky; top: 0; z-index: 20;
 }
 
-.content { padding: 20px 24px 64px; max-width: 1240px; width: 100%; }
+/* Centred, or everything hugs the left edge of any display wider than a
+   13-inch laptop — which is most of them. The cap rises too: 1240 was
+   simply the width that happened to fill the machine this was built on. */
+.content {
+  padding: 20px 24px 64px;
+  width: 100%;
+  max-width: 1560px;
+  margin-inline: auto;
+}
 
 .mobile-nav { display: none; }
 
@@ -1572,4 +1582,29 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   .ridge { height: 48%; }
   .ridge-far { height: 50%; }
   .mist { height: 110px; }
+}
+
+/* =====================================================================
+   LARGE DISPLAYS — use the room rather than leaving it blank
+   ===================================================================== */
+@media (min-width: 1500px) {
+  .content { padding: 26px 40px 76px; }
+  .topbar {
+    padding-block: 17px;
+    padding-inline: calc(max(0px, (100% - 1560px) / 2) + 40px);
+  }
+}
+
+@media (min-width: 1700px) {
+  /* an extra stat across, and tiles stop stretching into letterboxes */
+  .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .gallery { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .hero-value { font-size: 58px; }
+}
+
+@media (min-width: 2100px) {
+  .content { max-width: 1800px; }
+  /* the bar has to track the same cap, or the heading drifts off the column */
+  .topbar { padding-inline: calc(max(0px, (100% - 1800px) / 2) + 40px); }
+  .gallery { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 }
