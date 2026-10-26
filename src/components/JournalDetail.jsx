@@ -35,7 +35,7 @@ export default function JournalDetail({
     })()
     return () => { alive = false }
   }, [entry.id, entry.model_id])
-  const urls = useSignedUrls(paths)
+  const { urls, error: imgError, loading: imgLoading } = useSignedUrls(paths)
   const written = JOURNAL_FIELDS.filter((f) => String(entry[f.key] || '').trim())
   const name = isMine ? 'You' : (author?.display_name || 'Trader')
   const exec = getExecution(entry.execution)
@@ -147,13 +147,24 @@ export default function JournalDetail({
         </div>
       )}
 
+      {imgError && (
+        <div className="alert error">
+          {imgError} They are stored privately and the link is signed on demand — if
+          this keeps happening the storage policy is the place to look.
+        </div>
+      )}
+
       {paths.length > 0 && (
         <div className="jshots">
           {paths.map((p) => (
             <div key={p} className="jshot" onClick={() => urls[p] && setZoom(urls[p])}>
-              {urls[p]
-                ? <img src={urls[p]} alt="" />
-                : <div className="skeleton" style={{ height: 180 }} />}
+              {urls[p] ? (
+                <img src={urls[p]} alt="" />
+              ) : imgLoading ? (
+                <div className="skeleton" style={{ height: 180 }} />
+              ) : (
+                <div className="shot-failed">⚠ This chart didn’t load</div>
+              )}
             </div>
           ))}
         </div>

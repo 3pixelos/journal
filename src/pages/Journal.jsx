@@ -341,7 +341,7 @@ export default function Journal() {
 
 function ListView({ entries, tradesById, authors, attachments, userId, onOpen }) {
   const firstPaths = entries.map((e) => (attachments[e.id] || [])[0]).filter(Boolean)
-  const urls = useSignedUrls(firstPaths)
+  const { urls } = useSignedUrls(firstPaths)
 
   return (
     <div className="table-wrap">

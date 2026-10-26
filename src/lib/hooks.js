@@ -3,22 +3,31 @@ import { supabase } from './supabase'
 import { signPaths } from './storage'
 import { useAuth } from '../context/AuthContext'
 
-/** Signed URLs for a list of storage paths, refreshed when the list changes. */
+/**
+ * Signed URLs for a list of storage paths, refreshed when the list changes.
+ * Reports whether it is still working and why it failed, so a broken image
+ * can say so instead of sitting as a grey box.
+ */
 export function useSignedUrls(paths) {
-  const [urls, setUrls] = useState({})
+  const [state, setState] = useState({ urls: {}, error: null, loading: false })
   const key = [...new Set(paths.filter(Boolean))].sort().join('|')
 
   useEffect(() => {
     let alive = true
     if (!key) {
-      setUrls({})
+      setState({ urls: {}, error: null, loading: false })
       return
     }
-    signPaths(key.split('|')).then((m) => alive && setUrls(m))
+    setState((s) => ({ ...s, loading: true }))
+    signPaths(key.split('|'))
+      .then((r) => alive && setState({ urls: r.urls, error: r.error, loading: false }))
+      .catch((e) => alive && setState({
+        urls: {}, error: e.message || 'Could not load images.', loading: false,
+      }))
     return () => { alive = false }
   }, [key])
 
-  return urls
+  return state
 }
 
 /** The signed-in user's tags, with a create helper. */

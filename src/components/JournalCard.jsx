@@ -38,7 +38,7 @@ export function effectiveOutcome(entry, trade) {
  * appears on your own entries — everyone else's show who wrote them instead.
  */
 export default function JournalCard({ entry, trade, author, paths = [], isMine, onOpen }) {
-  const urls = useSignedUrls(paths.slice(0, 1))
+  const { urls, error: imgError, loading: imgLoading } = useSignedUrls(paths.slice(0, 1))
   const cover = paths[0] ? urls[paths[0]] : null
   const outcome = effectiveOutcome(entry, isMine ? trade : null)
   const symbol = trade?.symbol || entry.title || 'Journal entry'
@@ -53,12 +53,12 @@ export default function JournalCard({ entry, trade, author, paths = [], isMine, 
       <div className="jcard-media">
         {cover ? (
           <img src={cover} alt="" loading="lazy" />
-        ) : paths.length ? (
+        ) : paths.length && imgLoading ? (
           <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+        ) : paths.length ? (
+          <div className="noimg"><span>⚠ Chart didn’t load</span></div>
         ) : (
-          <div className="noimg">
-            <span>No chart attached</span>
-          </div>
+          <div className="noimg"><span>No chart attached</span></div>
         )}
         {/* At most one band, in order of what the day actually was: a day you
             passed on, then an external hit, then an error of your own. */}

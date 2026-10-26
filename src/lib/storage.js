@@ -25,17 +25,35 @@ export async function removeScreenshot(path) {
   await supabase.storage.from(SCREENSHOT_BUCKET).remove([path])
 }
 
-/** Batch-sign paths for display. Returns { path: url }. */
+/**
+ * Batch-sign paths for display.
+ *
+ * Returns the reason on failure rather than an empty map: a silent {} left
+ * the UI showing a grey placeholder for ever, which looks identical to an
+ * image that is still loading and tells you nothing about why.
+ */
 export async function signPaths(paths, expiresIn = 3600) {
   const unique = [...new Set(paths.filter(Boolean))]
-  if (!unique.length) return {}
+  if (!unique.length) return { urls: {}, error: null }
+
   const { data, error } = await supabase.storage
     .from(SCREENSHOT_BUCKET)
     .createSignedUrls(unique, expiresIn)
-  if (error) return {}
-  const out = {}
-  for (const row of data || []) {
-    if (row.signedUrl && !row.error) out[row.path] = row.signedUrl
+
+  if (error) {
+    return { urls: {}, error: error.message || 'Could not reach image storage.' }
   }
-  return out
+
+  const urls = {}
+  const failed = []
+  for (const row of data || []) {
+    if (row.signedUrl && !row.error) urls[row.path] = row.signedUrl
+    else failed.push(row.path)
+  }
+  return {
+    urls,
+    error: failed.length
+      ? `${failed.length} image${failed.length === 1 ? '' : 's'} could not be loaded.`
+      : null,
+  }
 }

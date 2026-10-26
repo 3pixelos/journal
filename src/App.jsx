@@ -9,6 +9,7 @@ import Backtesting from './pages/Backtesting'
 import Reminders from './pages/Reminders'
 import Settings from './pages/Settings'
 import Welcome from './components/Welcome'
+import ErrorBoundary from './components/ErrorBoundary'
 
 export default function App() {
   const { session, loading } = useAuth()
@@ -31,7 +32,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <Welcome />
       <Routes>
         <Route element={<Layout />}>
@@ -44,6 +45,6 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
+    </ErrorBoundary>
   )
 }

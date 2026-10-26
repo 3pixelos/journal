@@ -21,7 +21,7 @@ export default function ScreenshotUploader({ paths, onChange, disabled }) {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef(null)
   const boxRef = useRef(null)
-  const urls = useSignedUrls(paths)
+  const { urls } = useSignedUrls(paths)
 
   // Always append to the newest list, never the one captured when this
   // handler was created — two uploads in flight would otherwise lose one.
