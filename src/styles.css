@@ -1903,3 +1903,92 @@ body { overflow-x: hidden; }
 
 :root[data-motion='off'] [data-page] > .col > *,
 :root[data-motion='off'] [data-page] .reminder { animation: none !important; }
+
+/* ===== transition variants ========================================== */
+
+/* Trades — a scanner sweeps down the ledger */
+.fx-scanline {
+  position: absolute; left: 0; right: 0; height: 180px; top: -180px;
+  background: linear-gradient(to bottom,
+    transparent, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0.5) 97%, #fff);
+  box-shadow: 0 0 34px 6px rgba(255, 255, 255, 0.22);
+  animation: fx-scan 760ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes fx-scan {
+  from { transform: translateY(0); opacity: 0 }
+  12%  { opacity: 1 }
+  85%  { opacity: 1 }
+  to   { transform: translateY(calc(100vh + 200px)); opacity: 0 }
+}
+.fx-scangrid {
+  position: absolute; inset: 0; opacity: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 68px 68px;
+  animation: fx-grid 700ms ease-out both;
+}
+@keyframes fx-grid { 0% { opacity: 0 } 22% { opacity: 1 } 100% { opacity: 0 } }
+
+/* Journal — a camera shutter */
+.fx-blade {
+  position: absolute; left: 0; right: 0; height: 52%;
+  background: linear-gradient(to bottom, #07080a, #0d0f13);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+}
+.fx-blade.top { top: 0; animation: fx-blade-top 620ms cubic-bezier(0.5, 0, 0.2, 1) both; }
+.fx-blade.bottom { bottom: 0; animation: fx-blade-bot 620ms cubic-bezier(0.5, 0, 0.2, 1) both; }
+@keyframes fx-blade-top { from { transform: translateY(0) } to { transform: translateY(-100%) } }
+@keyframes fx-blade-bot { from { transform: translateY(0) } to { transform: translateY(100%) } }
+.fx-pop {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, #fff, transparent 46%);
+  opacity: 0; animation: fx-pop 460ms ease-out both; animation-delay: 150ms;
+}
+@keyframes fx-pop { 0% { opacity: 0 } 18% { opacity: 0.4 } 100% { opacity: 0 } }
+
+/* Backtesting — data falling through */
+.fx-drop {
+  position: absolute; top: -220px; width: 2px;
+  background: linear-gradient(to bottom, transparent, var(--pos));
+  opacity: 0; border-radius: 99px;
+  box-shadow: 0 0 10px 1px rgba(47, 224, 138, 0.5);
+  animation-name: fx-drop; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  animation-fill-mode: both;
+}
+@keyframes fx-drop {
+  0%   { opacity: 0; transform: translateY(0) }
+  14%  { opacity: 1 }
+  78%  { opacity: 1 }
+  100% { opacity: 0; transform: translateY(calc(100vh + 260px)) }
+}
+
+/* Reminders — rings landing */
+.fx-ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 180px; height: 180px; margin: -90px 0 0 -90px;
+  border: 2px solid rgba(255, 255, 255, 0.55); border-radius: 50%;
+  opacity: 0; animation: fx-ripple 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.fx-ring.r2 { animation-delay: 130ms }
+.fx-ring.r3 { animation-delay: 260ms }
+@keyframes fx-ripple {
+  0%   { opacity: 0.8; transform: scale(0.15) }
+  100% { opacity: 0; transform: scale(7) }
+}
+
+/* Settings — the lights dip */
+.fx-fade {
+  position: absolute; inset: 0; background: #000; opacity: 0;
+  animation: fx-dim 520ms ease both;
+}
+@keyframes fx-dim { 0% { opacity: 0 } 20% { opacity: 0.45 } 100% { opacity: 0 } }
+
+:root[data-theme='light'] .fx-blade {
+  background: linear-gradient(to bottom, #e9ebee, #f4f5f7);
+}
+:root[data-theme='light'] .fx-scanline {
+  background: linear-gradient(to bottom, transparent, rgba(60, 70, 90, 0.08) 55%, rgba(60, 70, 90, 0.4) 97%, #5c6a86);
+}
+:root[data-theme='light'] .fx-ring { border-color: rgba(70, 82, 104, 0.5); }
+:root[data-theme='light'] .fx-fade { background: #46526a; }

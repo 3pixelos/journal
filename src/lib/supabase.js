@@ -12,10 +12,46 @@ if (!url || !anonKey) {
 
 /**
  * Sessions live in sessionStorage, not localStorage, so closing the browser
- * (or the tab) ends the session and the next visit asks for a password again.
- * For a journal holding real P&L that is the right default — a shared or
- * borrowed machine should not stay signed in.
+ * ends the session and the next visit asks for a password again.
  *
+ * sessionStorage alone is not enough: "continue where you left off" and
+ * restored tabs bring sessionStorage back with them, so the session
+ * survived a browser restart anyway. A heartbeat written while the tab is
+ * open gives us a last-seen time — if that is stale on boot, the tab was
+ * restored rather than merely refreshed, and the token is dropped before
+ * the client ever reads it.
+ */
+const SEEN_KEY = 'tj-seen'
+const HEARTBEAT_MS = 20000
+// comfortably longer than the heartbeat, far shorter than a coffee break
+const STALE_AFTER_MS = 90000
+
+function dropStaleSession() {
+  try {
+    const seen = Number(window.sessionStorage.getItem(SEEN_KEY) || 0)
+    const stale = !seen || Date.now() - seen > STALE_AFTER_MS
+    if (stale) {
+      for (const key of Object.keys(window.sessionStorage)) {
+        if (key.startsWith('sb-') && key.includes('-auth-token')) {
+          window.sessionStorage.removeItem(key)
+        }
+      }
+      // a restored tab is a new visit, so the greeting plays again too
+      window.sessionStorage.removeItem('tj-welcomed')
+    }
+    const beat = () => {
+      try { window.sessionStorage.setItem(SEEN_KEY, String(Date.now())) } catch { /* no-op */ }
+    }
+    beat()
+    setInterval(beat, HEARTBEAT_MS)
+    document.addEventListener('visibilitychange', beat)
+    window.addEventListener('pagehide', beat)
+  } catch { /* storage unavailable — nothing to protect */ }
+}
+
+dropStaleSession()
+
+/**
  * Falls back to an in-memory store where storage is blocked (private mode,
  * embedded webviews); the session then lasts only as long as the page.
  */

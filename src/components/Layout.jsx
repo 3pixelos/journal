@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { PresenceBar, SidebarPresence } from './Presence'
 import Avatar from './Avatar'
 import Backdrop from './Backdrop'
-import PageFX from './PageFX'
+import PageFX, { FX_FOR } from './PageFX'
 
 // `short` keeps the phone bar legible — six full labels do not fit at 375px.
 const LINKS = [
@@ -35,8 +35,8 @@ export default function Layout() {
   return (
     <>
       <Backdrop />
-      {/* fresh key per route, so the effect replays on every navigation */}
-      <PageFX key={pathname} />
+      {/* fresh key per route, so the effect replays — and differs — per page */}
+      <PageFX key={pathname} variant={FX_FOR[pathname] || 'dim'} />
       <div className="shell">
       <aside className="sidebar">
         <div className="brand">
