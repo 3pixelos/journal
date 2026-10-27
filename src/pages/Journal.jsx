@@ -11,6 +11,7 @@ import { Card, Empty, Loading, Segmented, TagChip } from '../components/ui'
 import JournalForm from '../components/JournalForm'
 import JournalCard, { OutcomeTag, effectiveOutcome } from '../components/JournalCard'
 import JournalDetail from '../components/JournalDetail'
+import Celebrate from '../components/Celebrate'
 
 const RANGES = [
   { value: 'all', label: 'All time' },
@@ -37,6 +38,7 @@ export default function Journal() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [detail, setDetail] = useState(null)
+  const [cheer, setCheer] = useState(null)
 
   const [q, setQ] = useState('')
   const [range, setRange] = useState('all')
@@ -155,6 +157,10 @@ export default function Journal() {
   }, [entries, authors, user])
 
   async function handleMark(entry, outcome, isShared) {
+    // only when the result itself changes — not when visibility is toggled
+    if (outcome && outcome !== entry.outcome && (outcome === 'win' || outcome === 'loss')) {
+      setCheer(outcome)
+    }
     const patch = { outcome }
     if (isShared !== undefined) patch.is_shared = isShared
     setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, ...patch } : e)))
@@ -325,6 +331,8 @@ export default function Journal() {
           onEdit={(en) => { setDetail(null); setEditing(en); setShowForm(true) }}
         />
       )}
+
+      {cheer && <Celebrate kind={cheer} onDone={() => setCheer(null)} />}
 
       {showForm && (
         <JournalForm

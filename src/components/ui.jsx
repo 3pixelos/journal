@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { money, pnlClass } from '../lib/format'
 
 export function Card({ title, action, children, className = '', ...rest }) {
@@ -38,6 +39,9 @@ export function MoneyStat({ label, amount, sub }) {
 }
 
 export function Modal({ title, onClose, children, footer, wide }) {
+  const openedAt = useRef(Date.now())
+  const downOnBackdrop = useRef(false)
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -48,8 +52,30 @@ export function Modal({ title, onClose, children, footer, wide }) {
     }
   }, [onClose])
 
-  return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+  /**
+   * Rendered into <body> rather than in place.
+   *
+   * In place, the modal was a child of the animated content column, so the
+   * page-entrance rules applied to it: a transform (which makes an element
+   * the containing block for its own position:fixed overlay, pinning the
+   * popup to a zero-height box instead of the viewport) and an nth-child
+   * delay that held it at opacity 0. On a page with a few blocks that
+   * combination made it simply never appear.
+   *
+   * A portal also puts it outside the shell's stacking context, so nothing
+   * added to the page later can paint over it.
+   */
+  return createPortal(
+    <div
+      className="overlay"
+      onMouseDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget }}
+      onClick={(e) => {
+        // ignore the tail of the click that opened it, and any drag that
+        // merely finished on the backdrop
+        if (Date.now() - openedAt.current < 250) return
+        if (downOnBackdrop.current && e.target === e.currentTarget) onClose()
+      }}
+    >
       <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
         <div className="modal-head">
           <h2>{title}</h2>
@@ -59,7 +85,8 @@ export function Modal({ title, onClose, children, footer, wide }) {
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

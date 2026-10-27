@@ -89,7 +89,8 @@ export default function Layout() {
           </button>
         </header>
         {/* keyed on the route so each page plays its entrance */}
-        <main className="content" key={pathname}>
+        {/* data-page drives a different entrance for each route */}
+        <main className="content" key={pathname} data-page={pathname}>
           <Outlet />
         </main>
       </div>

@@ -8,6 +8,7 @@ import { Card, Empty, Loading, Segmented, Stat, TagChip } from '../components/ui
 import JournalForm from '../components/JournalForm'
 import JournalCard from '../components/JournalCard'
 import JournalDetail from '../components/JournalDetail'
+import Celebrate from '../components/Celebrate'
 
 const pct = (n) => `${(n * 100).toFixed(0)}%`
 
@@ -61,6 +62,7 @@ export default function Backtesting() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [detail, setDetail] = useState(null)
+  const [cheer, setCheer] = useState(null)
   const [q, setQ] = useState('')
   const [modelFilter, setModelFilter] = useState('')
   const [outcomeFilter, setOutcomeFilter] = useState('')
@@ -154,6 +156,10 @@ export default function Backtesting() {
   }, [entries, q, modelFilter, outcomeFilter, models])
 
   async function handleMark(entry, outcome, isShared) {
+    // only when the result itself changes — not when visibility is toggled
+    if (outcome && outcome !== entry.outcome && (outcome === 'win' || outcome === 'loss')) {
+      setCheer(outcome)
+    }
     const patch = { outcome }
     if (isShared !== undefined) patch.is_shared = isShared
     setEntries((p) => p.map((e) => (e.id === entry.id ? { ...e, ...patch } : e)))
@@ -375,6 +381,8 @@ export default function Backtesting() {
           onEdit={(en) => { setDetail(null); setEditing(en); setShowForm(true) }}
         />
       )}
+
+      {cheer && <Celebrate kind={cheer} onDone={() => setCheer(null)} />}
 
       {showForm && (
         <JournalForm
