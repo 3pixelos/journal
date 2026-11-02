@@ -27,6 +27,7 @@ export async function syncTags({ table, column, id, tagIds }) {
  */
 export async function syncAttachments({
   userId, tradeId = null, journalEntryId = null, backtestTradeId = null, paths,
+  prune = true,
 }) {
   // One object for every write below. A screenshot that is written with the
   // parent columns spelled out twice is a screenshot that gets orphaned the
@@ -51,7 +52,13 @@ export async function syncAttachments({
   const currentPaths = new Set((current || []).map((r) => r.storage_path))
   const want = new Set(paths)
 
-  const toRemove = (current || []).filter((r) => !want.has(r.storage_path)).map((r) => r.id)
+  // `paths` only says what to detach if the caller actually knows the full
+  // set. A form that is saved before its charts have loaded is holding an
+  // empty list because it has not been told yet, not because you removed
+  // anything — pruning on that deletes the pictures.
+  const toRemove = prune
+    ? (current || []).filter((r) => !want.has(r.storage_path)).map((r) => r.id)
+    : []
   if (toRemove.length) {
     const { error: err } = await supabase.from('attachments').delete().in('id', toRemove)
     if (err) throw err

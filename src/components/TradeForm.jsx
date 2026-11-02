@@ -56,6 +56,9 @@ export default function TradeForm({ trade, onClose, onSaved, onDeleted }) {
   const [error, setError] = useState('')
 
   const editing = Boolean(trade?.id)
+  // See syncAttachments: an empty `paths` means "not loaded yet" until this
+  // turns true, and a save must not read it as "detach everything".
+  const [chartsLoaded, setChartsLoaded] = useState(!trade?.id)
 
   // ---- hydrate when editing -----------------------------------------
   useEffect(() => {
@@ -81,6 +84,7 @@ export default function TradeForm({ trade, onClose, onSaved, onDeleted }) {
       ])
       setTagIds(links[trade.id] || [])
       setPaths(files[trade.id] || [])
+      setChartsLoaded(true)
       if (j) {
         setJournalId(j.id)
         setJournal({
@@ -166,9 +170,13 @@ export default function TradeForm({ trade, onClose, onSaved, onDeleted }) {
         }
         // Screenshots hang off the journal entry so they travel with a shared
         // entry; they stay linked to the trade too for the trade view.
-        await syncAttachments({ userId: user.id, tradeId: row.id, journalEntryId: jId, paths })
+        await syncAttachments({
+          userId: user.id, tradeId: row.id, journalEntryId: jId, paths, prune: chartsLoaded,
+        })
       } else {
-        await syncAttachments({ userId: user.id, tradeId: row.id, paths })
+        await syncAttachments({
+          userId: user.id, tradeId: row.id, paths, prune: chartsLoaded,
+        })
       }
 
       onSaved?.(row)

@@ -29,6 +29,9 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
   const { models } = useModels()
   const [form, setForm] = useState(BLANK)
   const [paths, setPaths] = useState([])
+  // Whether `paths` is the real list yet. Until it is, a save must not take
+  // its emptiness as an instruction to detach anything.
+  const [chartsLoaded, setChartsLoaded] = useState(!trade?.id)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -49,7 +52,10 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
       improvements: trade.improvements || '',
     })
     loadAttachments('backtest_trade_id', [trade.id])
-      .then((files) => setPaths(files[trade.id] || []))
+      .then((files) => {
+        setPaths(files[trade.id] || [])
+        setChartsLoaded(true)
+      })
       .catch((e) => setError(e.message || String(e)))
   }, [trade?.id])
 
@@ -95,7 +101,9 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
         rowId = data.id
       }
 
-      await syncAttachments({ userId: user.id, backtestTradeId: rowId, paths })
+      await syncAttachments({
+        userId: user.id, backtestTradeId: rowId, paths, prune: chartsLoaded,
+      })
 
       onSaved?.()
       onClose()

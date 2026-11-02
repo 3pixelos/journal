@@ -67,6 +67,9 @@ export default function JournalForm({
   const [error, setError] = useState('')
 
   const editing = Boolean(entry?.id)
+  // See syncAttachments: empty `paths` means "not loaded yet" until this is
+  // true, and saving before then must not detach the entry's screenshots.
+  const [chartsLoaded, setChartsLoaded] = useState(!entry?.id)
   // A backtest is the same record without the money: no contract, no prices,
   // no P&L, so nothing to put on the calendar.
   const isBacktest = (entry?.kind || kind) === 'backtest'
@@ -101,6 +104,7 @@ export default function JournalForm({
       ])
       setTagIds(links[entry.id] || [])
       setPaths(files[entry.id] || [])
+      setChartsLoaded(true)
       setChecked((checks || []).map((c) => c.check_id))
 
       if (entry.trade_id) {
@@ -248,6 +252,7 @@ export default function JournalForm({
 
       await syncAttachments({
         userId: user.id, journalEntryId: row.id, tradeId: row.trade_id || null, paths,
+        prune: chartsLoaded,
       })
 
       onSaved?.(row)
