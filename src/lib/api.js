@@ -24,9 +24,13 @@ export async function syncTags({ table, column, id, tagIds }) {
  * screenshot can start life attached to a trade and later gain a journal entry —
  * re-inserting it would violate that constraint.
  */
-export async function syncAttachments({ userId, tradeId = null, journalEntryId = null, paths }) {
-  const parentCol = journalEntryId ? 'journal_entry_id' : 'trade_id'
-  const parentId = journalEntryId || tradeId
+export async function syncAttachments({
+  userId, tradeId = null, journalEntryId = null, backtestTradeId = null, paths,
+}) {
+  const parentCol = backtestTradeId ? 'backtest_trade_id'
+    : journalEntryId ? 'journal_entry_id'
+    : 'trade_id'
+  const parentId = backtestTradeId || journalEntryId || tradeId
   if (!parentId) return
 
   const { data: current } = await supabase
@@ -56,7 +60,11 @@ export async function syncAttachments({ userId, tradeId = null, journalEntryId =
   if (toRelink.length) {
     await supabase
       .from('attachments')
-      .update({ trade_id: tradeId, journal_entry_id: journalEntryId })
+      .update({
+        trade_id: tradeId,
+        journal_entry_id: journalEntryId,
+        backtest_trade_id: backtestTradeId,
+      })
       .in('id', toRelink)
   }
   if (toInsert.length) {

@@ -46,6 +46,9 @@ another user's session physically cannot read a row.
    - [`supabase/014_news_loss.sql`](supabase/014_news_loss.sql) — losses caused by high-impact news
    - [`supabase/015_no_trade.sql`](supabase/015_no_trade.sql) — days you stood aside
    - [`supabase/016_backtest_pnl.sql`](supabase/016_backtest_pnl.sql) — backtesting a month with demo money
+   - [`supabase/017_backtest_notes.sql`](supabase/017_backtest_notes.sql) — write-up on a demo trade
+   - [`supabase/018_backtest_no_trade.sql`](supabase/018_backtest_no_trade.sql) — stood-aside days in a backtest
+   - [`supabase/019_backtest_screenshots.sql`](supabase/019_backtest_screenshots.sql) — charts on a demo trade
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new

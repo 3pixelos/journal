@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { useTitle } from '../lib/hooks'
+import { useTitle, useSignedUrls } from '../lib/hooks'
+import { loadAttachments } from '../lib/api'
 import {
   money, num, pnlClass, todayStr, parseDateStr, longDate,
 } from '../lib/format'
@@ -32,6 +33,7 @@ export default function BacktestPnl() {
   const [sessions, setSessions] = useState([])
   const [active, setActive] = useState(null)
   const [trades, setTrades] = useState([])
+  const [shots, setShots] = useState({})
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -55,10 +57,12 @@ export default function BacktestPnl() {
   useEffect(() => { loadSessions() }, [loadSessions])
 
   const loadTrades = useCallback(async (sessionId) => {
-    if (!sessionId) return setTrades([])
+    if (!sessionId) { setTrades([]); setShots({}); return }
     const { data } = await supabase
       .from('backtest_trades').select('*').eq('session_id', sessionId).order('trade_date')
-    setTrades(data || [])
+    const rows = data || []
+    setTrades(rows)
+    setShots(await loadAttachments('backtest_trade_id', rows.map((t) => t.id)))
   }, [])
 
   useEffect(() => { loadTrades(active?.id) }, [active?.id, loadTrades])
@@ -279,12 +283,13 @@ export default function BacktestPnl() {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Direction</th><th>Result</th><th>What you did</th>
-                      <th className="right">P&L</th></tr>
+                  <tr><th /><th>Direction</th><th>Result</th><th>What you did</th>
+                      <th className="right">P&L</th><th /></tr>
                 </thead>
                 <tbody>
                   {dayTrades.map((t) => (
                     <tr key={t.id} className="clickable" onClick={() => setEditing(t)}>
+                      <td style={{ width: 72 }}><Thumb path={(shots[t.id] || [])[0]} /></td>
                       <td>
                         {t.outcome === 'no_trade' ? (
                           <span className="chip">⊘ Stood aside</span>
@@ -312,6 +317,9 @@ export default function BacktestPnl() {
                         {t.outcome === 'no_trade' ? <span className="faint">—</span>
                           : money(t.pnl, { sign: true })}
                       </td>
+                      <td className="right">
+                        <span className="btn-ghost btn-sm">Edit</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -331,6 +339,17 @@ export default function BacktestPnl() {
           onDeleted={deleteTrade}
         />
       )}
+    </div>
+  )
+}
+
+/** One attached chart, shown small in the day list. */
+function Thumb({ path }) {
+  const { urls } = useSignedUrls(path ? [path] : [])
+  if (!path) return <div className="jlist-thumb" />
+  return (
+    <div className="jlist-thumb">
+      {urls[path] ? <img src={urls[path]} alt="" /> : null}
     </div>
   )
 }

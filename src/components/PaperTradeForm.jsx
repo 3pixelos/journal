@@ -3,7 +3,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useModels } from '../lib/hooks'
 import { longDate, money } from '../lib/format'
+import { syncAttachments, loadAttachments } from '../lib/api'
 import { Modal, Field, Alert, DeleteButton, Segmented } from './ui'
+import ScreenshotUploader from './Screenshots'
 
 const BLANK = {
   direction: 'long',
@@ -26,6 +28,7 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
   const { user } = useAuth()
   const { models } = useModels()
   const [form, setForm] = useState(BLANK)
+  const [paths, setPaths] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -43,6 +46,8 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
       mistakes: trade.mistakes || '',
       improvements: trade.improvements || '',
     })
+    loadAttachments('backtest_trade_id', [trade.id])
+      .then((files) => setPaths(files[trade.id] || []))
   }, [trade?.id])
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -75,10 +80,19 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
         improvements: form.improvements.trim() || null,
       }
 
-      const { error: err } = editing
-        ? await supabase.from('backtest_trades').update(payload).eq('id', trade.id)
-        : await supabase.from('backtest_trades').insert(payload)
-      if (err) throw err
+      let rowId = trade?.id
+      if (editing) {
+        const { error: err } = await supabase
+          .from('backtest_trades').update(payload).eq('id', rowId)
+        if (err) throw err
+      } else {
+        const { data, error: err } = await supabase
+          .from('backtest_trades').insert(payload).select('id').single()
+        if (err) throw err
+        rowId = data.id
+      }
+
+      await syncAttachments({ userId: user.id, backtestTradeId: rowId, paths })
 
       onSaved?.()
       onClose()
@@ -165,6 +179,10 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
             </select>
           </Field>
         )}
+
+        <Field label={stood ? 'The chart you passed on' : 'Chart'}>
+          <ScreenshotUploader paths={paths} onChange={setPaths} />
+        </Field>
 
         <Field label={stood ? 'Why did you stand aside?' : 'What did you do?'}>
           <textarea rows={4} value={form.execution_notes} onChange={set('execution_notes')}
