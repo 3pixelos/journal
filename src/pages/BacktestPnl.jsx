@@ -269,21 +269,27 @@ export default function BacktestPnl() {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Contract</th><th>Dir</th><th className="right">Entry</th>
-                      <th className="right">Exit</th><th>Note</th><th className="right">P&L</th></tr>
+                  <tr><th>Direction</th><th>Result</th><th>What you did</th>
+                      <th className="right">P&L</th></tr>
                 </thead>
                 <tbody>
                   {dayTrades.map((t) => (
                     <tr key={t.id} className="clickable" onClick={() => setEditing(t)}>
-                      <td style={{ fontWeight: 700 }}>{t.contract}</td>
                       <td>
                         <span className={`chip dir-${t.direction}`}>
                           {t.direction === 'long' ? '↑ Long' : '↓ Short'}
                         </span>
                       </td>
-                      <td className="right mono small">{t.entry_price ?? '—'}</td>
-                      <td className="right mono small">{t.exit_price ?? '—'}</td>
-                      <td className="small muted">{t.note || '—'}</td>
+                      <td>
+                        <span className={`jcard-tag ${Number(t.pnl) >= 0 ? 'win' : 'loss'}`}>
+                          {Number(t.pnl) >= 0 ? '↗ Win' : '↘ Loss'}
+                        </span>
+                      </td>
+                      <td className="small muted">
+                        {t.execution_notes
+                          ? t.execution_notes.slice(0, 70) + (t.execution_notes.length > 70 ? '…' : '')
+                          : '—'}
+                      </td>
                       <td className={`right mono ${pnlClass(t.pnl)}`} style={{ fontWeight: 700 }}>
                         {money(t.pnl, { sign: true })}
                       </td>

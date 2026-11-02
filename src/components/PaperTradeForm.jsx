@@ -2,83 +2,74 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useModels } from '../lib/hooks'
-import { sizeTrade, perPoint } from '../lib/contracts'
-import { longDate } from '../lib/format'
-import { Modal, Field, Alert, DeleteButton } from './ui'
-import TradeSizer from './TradeSizer'
+import { longDate, money } from '../lib/format'
+import { Modal, Field, Alert, DeleteButton, Segmented } from './ui'
 
 const BLANK = {
-  contract: '', qty: '1',
-  entryPrice: '', stopPrice: '', targetPrice: '', exitPrice: '',
-  result: '', fees: '0', balance: '', actualPnl: '', fxRate: '',
+  direction: 'long',
+  outcome: '',
+  amount: '',
+  model_id: '',
+  execution_notes: '',
+  mistakes: '',
+  improvements: '',
 }
 
-/** Log one demo trade into a backtest month. Same sizing as a real trade. */
+/**
+ * A demo trade: which way, how it went, how much, and what you did.
+ *
+ * No entry, stop or target — backtesting a month is about the decisions,
+ * and asking for tick data you are reading off a chart replay turns a
+ * thirty-second log into a chore nobody keeps up.
+ */
 export default function PaperTradeForm({ sessionId, date, trade, onClose, onSaved, onDeleted }) {
-  const { user, settings } = useAuth()
+  const { user } = useAuth()
   const { models } = useModels()
-  const [size, setSize] = useState(BLANK)
-  const [modelId, setModelId] = useState('')
-  const [note, setNote] = useState('')
+  const [form, setForm] = useState(BLANK)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   const editing = Boolean(trade?.id)
 
   useEffect(() => {
-    if (!settings) return
-    setSize((z) => (z.fxRate ? z : { ...z, fxRate: String(settings.fx_rate ?? 1) }))
-  }, [settings])
-
-  useEffect(() => {
     if (!trade?.id) return
-    setSize({
-      contract: trade.contract || '',
-      qty: String(trade.quantity ?? '1'),
-      entryPrice: trade.entry_price ?? '',
-      stopPrice: trade.stop_price ?? '',
-      targetPrice: trade.target_price ?? '',
-      exitPrice: trade.exit_price ?? '',
-      result: trade.result || '',
-      fees: String(trade.fees ?? '0'),
-      balance: '',
-      actualPnl: '',
-      fxRate: String(trade.fx_rate ?? 1),
+    const pnl = Number(trade.pnl || 0)
+    setForm({
+      direction: trade.direction || 'long',
+      outcome: pnl > 0 ? 'win' : pnl < 0 ? 'loss' : '',
+      amount: pnl ? String(Math.abs(pnl)) : '',
+      model_id: trade.model_id || '',
+      execution_notes: trade.execution_notes || '',
+      mistakes: trade.mistakes || '',
+      improvements: trade.improvements || '',
     })
-    setModelId(trade.model_id || '')
-    setNote(trade.note || '')
   }, [trade?.id])
 
-  const sized = sizeTrade(size)
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  const amount = Math.abs(Number(form.amount) || 0)
+  // the sign comes from the result, so the amount is always typed positive
+  const pnl = form.outcome === 'loss' ? -amount : amount
+  const ready = Boolean(form.outcome) && amount > 0
 
   async function save(e) {
     e.preventDefault()
     setBusy(true)
     setError('')
     try {
-      if (!sized.complete) throw new Error('Pick a contract, a size and how it finished.')
-      const n = (v) => (v === '' || v == null ? null : Number(v))
+      if (!form.outcome) throw new Error('Was it a win or a loss?')
+      if (!amount) throw new Error('How much did it make or lose?')
+
       const payload = {
         user_id: user.id,
         session_id: sessionId,
-        model_id: modelId || null,
+        model_id: form.model_id || null,
         trade_date: date,
-        contract: size.contract,
-        direction: sized.dir || 'long',
-        quantity: Number(size.qty) || 1,
-        multiplier: perPoint(size.contract),
-        entry_price: n(size.entryPrice),
-        stop_price: n(size.stopPrice),
-        target_price: n(size.targetPrice),
-        exit_price: sized.exit,
-        stop_points: sized.stopPoints || null,
-        target_points: sized.targetPoints || null,
-        result: size.result || null,
-        fees: Number(size.fees) || 0,
-        pnl: Number(sized.pnl.toFixed(2)),
-        pnl_usd: Number(sized.pnlUsd.toFixed(2)),
-        fx_rate: sized.fx,
-        note: note.trim() || null,
+        direction: form.direction,
+        pnl: Number(pnl.toFixed(2)),
+        execution_notes: form.execution_notes.trim() || null,
+        mistakes: form.mistakes.trim() || null,
+        improvements: form.improvements.trim() || null,
       }
 
       const { error: err } = editing
@@ -97,15 +88,14 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
 
   return (
     <Modal
-      title={`${editing ? 'Edit' : 'Demo trade'} · ${longDate(date)}`}
+      title={`${editing ? 'Edit demo trade' : 'Demo trade'} · ${longDate(date)}`}
       onClose={onClose}
-      wide
       footer={
         <>
           {editing && onDeleted && <DeleteButton onDelete={() => onDeleted(trade)} label="Delete" />}
           <div className="spacer" />
           <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn-go" onClick={save} disabled={busy}>
+          <button className="btn-go" onClick={save} disabled={busy || !ready}>
             {busy ? 'Saving…' : editing ? 'Save changes' : 'Add to the month'}
           </button>
         </>
@@ -113,24 +103,65 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
     >
       <form onSubmit={save} className="col" style={{ gap: 14 }}>
         <Alert kind="error">{error}</Alert>
-        <div className="tiny faint">
-          Demo money. This never touches your live calendar, goals or equity curve.
+
+        <div className="grid grid-2">
+          <Field label="Direction">
+            <Segmented
+              value={form.direction}
+              onChange={(v) => setForm((f) => ({ ...f, direction: v }))}
+              options={[{ value: 'long', label: '↑ Long' }, { value: 'short', label: '↓ Short' }]}
+            />
+          </Field>
+          <Field label="How did it go?">
+            <Segmented
+              value={form.outcome}
+              onChange={(v) => setForm((f) => ({ ...f, outcome: f.outcome === v ? '' : v }))}
+              options={[{ value: 'win', label: 'Win' }, { value: 'loss', label: 'Loss' }]}
+            />
+          </Field>
         </div>
+
+        <Field label={form.outcome === 'loss' ? 'How much did it lose?' : 'How much did it make?'}>
+          <input
+            type="number" step="any" min="0" value={form.amount} onChange={set('amount')}
+            placeholder="250" autoFocus
+            style={{ fontSize: 19, fontWeight: 700 }}
+          />
+        </Field>
+
+        {ready && (
+          <div className={`daysum ${form.outcome === 'loss' ? '' : ''}`}>
+            <span className={`big ${form.outcome === 'loss' ? 'neg' : 'pos'}`}>
+              {money(pnl, { sign: true })}
+            </span>
+            <span className="muted small">
+              goes on {longDate(date)} · {form.direction === 'long' ? 'long' : 'short'}
+            </span>
+          </div>
+        )}
 
         {models.length > 0 && (
           <Field label="Model (optional)">
-            <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
+            <select value={form.model_id} onChange={set('model_id')}>
               <option value="">— none —</option>
               {models.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </Field>
         )}
 
-        <TradeSizer value={size} onChange={setSize} />
+        <Field label="What did you do?">
+          <textarea rows={4} value={form.execution_notes} onChange={set('execution_notes')}
+                    placeholder="What you saw, why you took it, how you managed it." />
+        </Field>
 
-        <Field label="Note (optional)">
-          <input value={note} onChange={(e) => setNote(e.target.value)}
-                 placeholder="What the setup was, in a line" />
+        <Field label="Mistake (optional)">
+          <textarea rows={2} value={form.mistakes} onChange={set('mistakes')}
+                    placeholder="What broke the plan?" />
+        </Field>
+
+        <Field label="What could you have done better (optional)">
+          <textarea rows={2} value={form.improvements} onChange={set('improvements')}
+                    placeholder="One concrete change for next time." />
         </Field>
 
         <button type="submit" hidden />
