@@ -402,6 +402,19 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.72);
 }
+/* loose charts waiting to be put back on a trade */
+.loose-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+.loose-card { display: flex; flex-direction: column; gap: 8px; }
+.loose-shot {
+  aspect-ratio: 16 / 10; border-radius: var(--radius-sm); overflow: hidden;
+  border: 1px solid var(--line); background: var(--panel-2); cursor: zoom-in;
+}
+.loose-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.loose-card select { font-size: 12px; }
+
 /* how many charts are on a row, when there is more than one */
 .jlist-thumb { position: relative; }
 .jlist-thumb.has-shot { cursor: zoom-in; }

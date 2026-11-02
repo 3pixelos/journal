@@ -21,6 +21,23 @@ export async function uploadScreenshot(file, userId) {
   return path
 }
 
+/**
+ * Every screenshot this user has ever uploaded, newest first.
+ *
+ * Storage is the record of what exists; the attachments table is only the
+ * record of what each file is *for*. When the two disagree the file is still
+ * here, which is what makes a lost chart recoverable.
+ */
+export async function listMyScreenshots(userId) {
+  const { data, error } = await supabase.storage
+    .from(SCREENSHOT_BUCKET)
+    .list(userId, { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } })
+  if (error) throw error
+  return (data || [])
+    .filter((f) => f.id)   // folders come back with a null id
+    .map((f) => ({ path: `${userId}/${f.name}`, createdAt: f.created_at }))
+}
+
 export async function removeScreenshot(path) {
   await supabase.storage.from(SCREENSHOT_BUCKET).remove([path])
 }

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { listMyScreenshots } from './storage'
 
 /** Replace the tag links on a trade or journal entry. */
 export async function syncTags({ table, column, id, tagIds }) {
@@ -83,6 +84,50 @@ export async function syncAttachments({
     )
     if (err) throw err
   }
+}
+
+/**
+ * Screenshots sitting in Storage that no trade, journal entry or demo trade
+ * claims — either uploaded into a form that was never saved, or orphaned by
+ * a write that forgot to record its parent.
+ *
+ * A row whose parent columns are all null counts as unattached: the file is
+ * logged but points at nothing, which is exactly how a chart goes missing.
+ */
+export async function listLooseCharts(userId) {
+  const [files, { data: rows, error }] = await Promise.all([
+    listMyScreenshots(userId),
+    supabase
+      .from('attachments')
+      .select('storage_path, trade_id, journal_entry_id, backtest_trade_id')
+      .eq('user_id', userId),
+  ])
+  if (error) throw error
+
+  const claimed = new Set(
+    (rows || [])
+      .filter((r) => r.trade_id || r.journal_entry_id || r.backtest_trade_id)
+      .map((r) => r.storage_path)
+  )
+  return files.filter((f) => !claimed.has(f.path))
+}
+
+/** Point one screenshot that already exists in Storage at a parent. */
+export async function linkChart({ userId, path, tradeId = null, journalEntryId = null, backtestTradeId = null }) {
+  const parent = {
+    trade_id: tradeId,
+    journal_entry_id: journalEntryId,
+    backtest_trade_id: backtestTradeId,
+  }
+  // storage_path is unique, so an orphan row is updated rather than duplicated.
+  const { data: row, error: readErr } = await supabase
+    .from('attachments').select('id').eq('storage_path', path).maybeSingle()
+  if (readErr) throw readErr
+
+  const { error } = row
+    ? await supabase.from('attachments').update(parent).eq('id', row.id)
+    : await supabase.from('attachments').insert({ user_id: userId, storage_path: path, ...parent })
+  if (error) throw error
 }
 
 /** Drop the row for one screenshot immediately, so a cancelled form cannot leave

@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useTitle, useSignedUrls } from '../lib/hooks'
-import { loadAttachments } from '../lib/api'
+import { loadAttachments, listLooseCharts, linkChart } from '../lib/api'
 import {
-  money, num, pnlClass, todayStr, parseDateStr, longDate,
+  money, num, pnlClass, todayStr, parseDateStr, longDate, shortDate,
 } from '../lib/format'
 import { stats, byDay } from '../lib/calc'
 import { Card, Stat, Empty, Loading, Field, Alert, DeleteButton, ChartViewer } from '../components/ui'
@@ -271,6 +271,12 @@ export default function BacktestPnl() {
         )}
       </Card>
 
+      <LooseCharts
+        userId={user.id}
+        trades={trades}
+        onLinked={() => loadTrades(active.id)}
+      />
+
       {openDay && !editing && (
         <Card
           title={longDate(openDay)}
@@ -365,6 +371,104 @@ export default function BacktestPnl() {
         />
       )}
     </div>
+  )
+}
+
+/**
+ * Charts sitting in Storage that nothing claims, and a way to put them back.
+ *
+ * Storage keeps the file whatever the database says, so a chart whose link was
+ * lost is recoverable — you just have to be shown it and asked where it goes.
+ * Hidden entirely once there is nothing loose.
+ */
+function LooseCharts({ userId, trades, onLinked }) {
+  const [loose, setLoose] = useState([])
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState('')
+  const [view, setView] = useState(null)
+
+  const paths = useMemo(() => loose.map((f) => f.path), [loose])
+  const { urls } = useSignedUrls(paths)
+
+  const refresh = useCallback(() => {
+    if (!userId) return
+    listLooseCharts(userId)
+      .then(setLoose)
+      .catch((e) => setError(e.message || String(e)))
+  }, [userId])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  async function attach(path, tradeId) {
+    if (!tradeId) return
+    setBusy(path)
+    setError('')
+    try {
+      await linkChart({ userId, path, backtestTradeId: tradeId })
+      setLoose((l) => l.filter((f) => f.path !== path))
+      onLinked?.()
+    } catch (e) {
+      setError(e.message || String(e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  if (!loose.length && !error) return null
+
+  const label = (t) =>
+    `${shortDate(t.trade_date)} · ${t.outcome === 'no_trade'
+      ? 'stood aside'
+      : `${t.direction === 'long' ? '↑' : '↓'} ${money(t.pnl, { sign: true })}`}`
+
+  return (
+    <Card
+      title={`Charts not attached to anything (${loose.length})`}
+      action={<button className="btn-ghost btn-sm" onClick={refresh}>Refresh</button>}
+    >
+      <Alert kind="error">{error}</Alert>
+      <div className="small muted" style={{ marginBottom: 12 }}>
+        Still in your storage, just not linked to a trade. Click one to see it full
+        size, then pick the day it belongs to. Only this month's demo trades are
+        listed — open another month to place its charts.
+      </div>
+
+      <div className="loose-grid">
+        {loose.map((f) => (
+          <div className="loose-card" key={f.path}>
+            <div
+              className="loose-shot"
+              onClick={() => urls[f.path] && setView(paths.indexOf(f.path))}
+            >
+              {urls[f.path]
+                ? <img src={urls[f.path]} alt="" />
+                : <div className="skeleton" style={{ height: '100%' }} />}
+            </div>
+            <select
+              defaultValue=""
+              disabled={busy === f.path || trades.length === 0}
+              onChange={(e) => attach(f.path, e.target.value)}
+            >
+              <option value="">
+                {trades.length ? 'Attach to…' : 'No demo trades this month'}
+              </option>
+              {trades.map((t) => (
+                <option key={t.id} value={t.id}>{label(t)}</option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
+
+      {view !== null && (
+        <ChartViewer
+          urls={paths.map((p) => urls[p]).filter(Boolean)}
+          index={view}
+          onIndex={setView}
+          onClose={() => setView(null)}
+        />
+      )}
+    </Card>
   )
 }
 
