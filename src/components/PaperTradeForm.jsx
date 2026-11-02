@@ -39,7 +39,9 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
     const pnl = Number(trade.pnl || 0)
     setForm({
       direction: trade.direction || 'long',
-      outcome: pnl > 0 ? 'win' : pnl < 0 ? 'loss' : '',
+      // The row's own outcome, not the sign of its P&L: a day you stood
+      // aside is worth 0 and would otherwise reopen with nothing selected.
+      outcome: trade.outcome || (pnl > 0 ? 'win' : pnl < 0 ? 'loss' : ''),
       amount: pnl ? String(Math.abs(pnl)) : '',
       model_id: trade.model_id || '',
       execution_notes: trade.execution_notes || '',
@@ -48,6 +50,7 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
     })
     loadAttachments('backtest_trade_id', [trade.id])
       .then((files) => setPaths(files[trade.id] || []))
+      .catch((e) => setError(e.message || String(e)))
   }, [trade?.id])
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))

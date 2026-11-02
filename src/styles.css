@@ -386,7 +386,31 @@ th { font-weight: 700; letter-spacing: 0.08em; }
   position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.9);
   display: grid; place-items: center; padding: 20px; cursor: zoom-out;
 }
-.lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; cursor: default; }
+.lb-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  width: 46px; height: 60px; display: grid; place-items: center;
+  font-size: 32px; line-height: 1; color: #fff; cursor: pointer;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px; padding: 0;
+}
+.lb-nav:hover { background: rgba(255, 255, 255, 0.18); }
+.lb-nav.prev { left: 16px; }
+.lb-nav.next { right: 16px; }
+.lb-count {
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.72);
+}
+/* how many charts are on a row, when there is more than one */
+.jlist-thumb { position: relative; }
+.jlist-thumb.has-shot { cursor: zoom-in; }
+.jlist-thumb .shot-n {
+  position: absolute; right: 2px; bottom: 2px;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  padding: 2px 4px; border-radius: 4px;
+  background: rgba(0, 0, 0, 0.66); color: #fff;
+}
 
 .checkrow {
   display: flex; align-items: center; gap: 12px;

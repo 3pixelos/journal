@@ -151,6 +151,46 @@ export function Lightbox({ src, onClose }) {
   )
 }
 
+/**
+ * Full-size charts with arrows, for recapping a day without opening each form.
+ *
+ * Portalled, because any ancestor carrying a transform (the page entrance
+ * animations all do) becomes the containing block for a fixed overlay and
+ * quietly traps it inside the card.
+ */
+export function ChartViewer({ urls, index = 0, onIndex, onClose }) {
+  const n = urls.length
+  useEffect(() => {
+    if (!n) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight') onIndex((index + 1) % n)
+      if (e.key === 'ArrowLeft') onIndex((index - 1 + n) % n)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [index, n, onIndex, onClose])
+
+  if (!n) return null
+  const i = Math.min(index, n - 1)
+
+  return createPortal(
+    <div className="lightbox" onClick={onClose}>
+      <img src={urls[i]} alt="Chart screenshot" onClick={(e) => e.stopPropagation()} />
+      {n > 1 && (
+        <>
+          <button className="lb-nav prev" aria-label="Previous chart"
+                  onClick={(e) => { e.stopPropagation(); onIndex((i - 1 + n) % n) }}>‹</button>
+          <button className="lb-nav next" aria-label="Next chart"
+                  onClick={(e) => { e.stopPropagation(); onIndex((i + 1) % n) }}>›</button>
+          <div className="lb-count">{i + 1} / {n}</div>
+        </>
+      )}
+    </div>,
+    document.body
+  )
+}
+
 export function TagChip({ tag, onRemove, onClick, active }) {
   return (
     <span

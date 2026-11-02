@@ -7,7 +7,7 @@ import {
   money, num, pnlClass, todayStr, parseDateStr, longDate,
 } from '../lib/format'
 import { stats, byDay } from '../lib/calc'
-import { Card, Stat, Empty, Loading, Field, Alert, DeleteButton } from '../components/ui'
+import { Card, Stat, Empty, Loading, Field, Alert, DeleteButton, ChartViewer } from '../components/ui'
 import TradeCalendar from '../components/TradeCalendar'
 import PaperTradeForm from '../components/PaperTradeForm'
 
@@ -43,6 +43,7 @@ export default function BacktestPnl() {
 
   const [openDay, setOpenDay] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [gallery, setGallery] = useState(null)   // { paths, i } — charts being viewed
 
   const loadSessions = useCallback(async () => {
     if (!user) return
@@ -122,6 +123,11 @@ export default function BacktestPnl() {
     () => (openDay ? trades.filter((t) => t.trade_date === openDay) : []),
     [trades, openDay]
   )
+
+  // Sign every chart on the open day up front. A night recap is clicking
+  // through pictures, so they are ready by the time you reach for them.
+  const dayShots = useMemo(() => dayTrades.flatMap((t) => shots[t.id] || []), [dayTrades, shots])
+  const { urls: shotUrls } = useSignedUrls(dayShots)
 
   // ---- month picker ---------------------------------------------------
   if (!active) {
@@ -289,7 +295,17 @@ export default function BacktestPnl() {
                 <tbody>
                   {dayTrades.map((t) => (
                     <tr key={t.id} className="clickable" onClick={() => setEditing(t)}>
-                      <td style={{ width: 72 }}><Thumb path={(shots[t.id] || [])[0]} /></td>
+                      <td
+                        style={{ width: 72 }}
+                        onClick={(e) => {
+                          const ps = shots[t.id] || []
+                          if (!ps.length) return
+                          e.stopPropagation()   // the picture, not the edit form
+                          setGallery({ paths: ps, i: 0 })
+                        }}
+                      >
+                        <Thumb urls={shotUrls} paths={shots[t.id] || []} />
+                      </td>
                       <td>
                         {t.outcome === 'no_trade' ? (
                           <span className="chip">⊘ Stood aside</span>
@@ -329,6 +345,15 @@ export default function BacktestPnl() {
         </Card>
       )}
 
+      {gallery && (
+        <ChartViewer
+          urls={gallery.paths.map((p) => shotUrls[p]).filter(Boolean)}
+          index={gallery.i}
+          onIndex={(i) => setGallery((g) => ({ ...g, i }))}
+          onClose={() => setGallery(null)}
+        />
+      )}
+
       {editing && (
         <PaperTradeForm
           sessionId={active.id}
@@ -343,13 +368,14 @@ export default function BacktestPnl() {
   )
 }
 
-/** One attached chart, shown small in the day list. */
-function Thumb({ path }) {
-  const { urls } = useSignedUrls(path ? [path] : [])
-  if (!path) return <div className="jlist-thumb" />
+/** The day list's chart cell: first chart small, and how many there are. */
+function Thumb({ urls, paths }) {
+  const first = paths[0]
+  if (!first) return <div className="jlist-thumb" />
   return (
-    <div className="jlist-thumb">
-      {urls[path] ? <img src={urls[path]} alt="" /> : null}
+    <div className="jlist-thumb has-shot" title="View the chart">
+      {urls[first] ? <img src={urls[first]} alt="" /> : null}
+      {paths.length > 1 && <span className="shot-n">{paths.length}</span>}
     </div>
   )
 }

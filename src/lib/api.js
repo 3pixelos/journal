@@ -27,55 +27,61 @@ export async function syncTags({ table, column, id, tagIds }) {
 export async function syncAttachments({
   userId, tradeId = null, journalEntryId = null, backtestTradeId = null, paths,
 }) {
+  // One object for every write below. A screenshot that is written with the
+  // parent columns spelled out twice is a screenshot that gets orphaned the
+  // day a fourth parent is added, and an orphan looks exactly like a lost file.
+  const parent = {
+    trade_id: tradeId,
+    journal_entry_id: journalEntryId,
+    backtest_trade_id: backtestTradeId,
+  }
   const parentCol = backtestTradeId ? 'backtest_trade_id'
     : journalEntryId ? 'journal_entry_id'
     : 'trade_id'
-  const parentId = backtestTradeId || journalEntryId || tradeId
+  const parentId = parent[parentCol]
   if (!parentId) return
 
-  const { data: current } = await supabase
+  const { data: current, error: readErr } = await supabase
     .from('attachments')
     .select('id, storage_path')
     .eq(parentCol, parentId)
+  if (readErr) throw readErr
 
   const currentPaths = new Set((current || []).map((r) => r.storage_path))
   const want = new Set(paths)
 
   const toRemove = (current || []).filter((r) => !want.has(r.storage_path)).map((r) => r.id)
-  if (toRemove.length) await supabase.from('attachments').delete().in('id', toRemove)
+  if (toRemove.length) {
+    const { error: err } = await supabase.from('attachments').delete().in('id', toRemove)
+    if (err) throw err
+  }
 
   const missing = paths.filter((p) => !currentPaths.has(p))
   if (!missing.length) return
 
   // Some of these rows may already exist under the other parent column.
-  const { data: existing } = await supabase
+  const { data: existing, error: dupErr } = await supabase
     .from('attachments')
     .select('id, storage_path')
     .in('storage_path', missing)
+  if (dupErr) throw dupErr
   const idByPath = new Map((existing || []).map((r) => [r.storage_path, r.id]))
 
   const toRelink = missing.filter((p) => idByPath.has(p)).map((p) => idByPath.get(p))
   const toInsert = missing.filter((p) => !idByPath.has(p))
 
   if (toRelink.length) {
-    await supabase
+    const { error: err } = await supabase
       .from('attachments')
-      .update({
-        trade_id: tradeId,
-        journal_entry_id: journalEntryId,
-        backtest_trade_id: backtestTradeId,
-      })
+      .update(parent)
       .in('id', toRelink)
+    if (err) throw err
   }
   if (toInsert.length) {
-    await supabase.from('attachments').insert(
-      toInsert.map((storage_path) => ({
-        user_id: userId,
-        trade_id: tradeId,
-        journal_entry_id: journalEntryId,
-        storage_path,
-      }))
+    const { error: err } = await supabase.from('attachments').insert(
+      toInsert.map((storage_path) => ({ user_id: userId, storage_path, ...parent }))
     )
+    if (err) throw err
   }
 }
 
@@ -88,10 +94,12 @@ export async function deleteAttachmentByPath(storagePath) {
 /** Load attachment paths for a set of parents. Returns { parentId: [path] }. */
 export async function loadAttachments(column, ids) {
   if (!ids.length) return {}
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('attachments')
     .select(`id, storage_path, ${column}`)
     .in(column, ids)
+  // A read that fails should cost you the thumbnails, not the page they sit on.
+  if (error) console.error('loadAttachments', column, error.message)
   const out = {}
   for (const row of data || []) {
     const k = row[column]
