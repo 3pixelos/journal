@@ -47,18 +47,20 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
+  // a day you passed on: no side, no size, just why
+  const stood = form.outcome === 'no_trade'
   const amount = Math.abs(Number(form.amount) || 0)
   // the sign comes from the result, so the amount is always typed positive
-  const pnl = form.outcome === 'loss' ? -amount : amount
-  const ready = Boolean(form.outcome) && amount > 0
+  const pnl = stood ? 0 : form.outcome === 'loss' ? -amount : amount
+  const ready = stood ? true : Boolean(form.outcome) && amount > 0
 
   async function save(e) {
     e.preventDefault()
     setBusy(true)
     setError('')
     try {
-      if (!form.outcome) throw new Error('Was it a win or a loss?')
-      if (!amount) throw new Error('How much did it make or lose?')
+      if (!form.outcome) throw new Error('Win, loss, or did you stand aside?')
+      if (!stood && !amount) throw new Error('How much did it make or lose?')
 
       const payload = {
         user_id: user.id,
@@ -66,6 +68,7 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
         model_id: form.model_id || null,
         trade_date: date,
         direction: form.direction,
+        outcome: form.outcome,
         pnl: Number(pnl.toFixed(2)),
         execution_notes: form.execution_notes.trim() || null,
         mistakes: form.mistakes.trim() || null,
@@ -104,39 +107,53 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
       <form onSubmit={save} className="col" style={{ gap: 14 }}>
         <Alert kind="error">{error}</Alert>
 
-        <div className="grid grid-2">
-          <Field label="Direction">
-            <Segmented
-              value={form.direction}
-              onChange={(v) => setForm((f) => ({ ...f, direction: v }))}
-              options={[{ value: 'long', label: '↑ Long' }, { value: 'short', label: '↓ Short' }]}
-            />
-          </Field>
-          <Field label="How did it go?">
-            <Segmented
-              value={form.outcome}
-              onChange={(v) => setForm((f) => ({ ...f, outcome: f.outcome === v ? '' : v }))}
-              options={[{ value: 'win', label: 'Win' }, { value: 'loss', label: 'Loss' }]}
-            />
-          </Field>
-        </div>
-
-        <Field label={form.outcome === 'loss' ? 'How much did it lose?' : 'How much did it make?'}>
-          <input
-            type="number" step="any" min="0" value={form.amount} onChange={set('amount')}
-            placeholder="250" autoFocus
-            style={{ fontSize: 19, fontWeight: 700 }}
+        <Field label="How did it go?">
+          <Segmented
+            value={form.outcome}
+            onChange={(v) => setForm((f) => ({ ...f, outcome: f.outcome === v ? '' : v }))}
+            options={[
+              { value: 'win', label: 'Win' },
+              { value: 'loss', label: 'Loss' },
+              { value: 'no_trade', label: '⊘ No trade' },
+            ]}
           />
         </Field>
 
-        {ready && (
-          <div className={`daysum ${form.outcome === 'loss' ? '' : ''}`}>
+        {!stood && (
+          <>
+            <Field label="Direction">
+              <Segmented
+                value={form.direction}
+                onChange={(v) => setForm((f) => ({ ...f, direction: v }))}
+                options={[{ value: 'long', label: '↑ Long' }, { value: 'short', label: '↓ Short' }]}
+              />
+            </Field>
+
+            <Field label={form.outcome === 'loss' ? 'How much did it lose?' : 'How much did it make?'}>
+              <input
+                type="number" step="any" min="0" value={form.amount} onChange={set('amount')}
+                placeholder="250"
+                style={{ fontSize: 19, fontWeight: 700 }}
+              />
+            </Field>
+          </>
+        )}
+
+        {ready && !stood && (
+          <div className="daysum">
             <span className={`big ${form.outcome === 'loss' ? 'neg' : 'pos'}`}>
               {money(pnl, { sign: true })}
             </span>
             <span className="muted small">
               goes on {longDate(date)} · {form.direction === 'long' ? 'long' : 'short'}
             </span>
+          </div>
+        )}
+
+        {stood && (
+          <div className="daysum stood-sum">
+            <span className="big" style={{ color: 'var(--text-2)' }}>⊘ No trade</span>
+            <span className="muted small">counts as a day reviewed, never as a win or loss</span>
           </div>
         )}
 
@@ -149,20 +166,22 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
           </Field>
         )}
 
-        <Field label="What did you do?">
+        <Field label={stood ? 'Why did you stand aside?' : 'What did you do?'}>
           <textarea rows={4} value={form.execution_notes} onChange={set('execution_notes')}
-                    placeholder="What you saw, why you took it, how you managed it." />
+                    placeholder={stood
+                      ? 'No clean structure, chopping inside the range, nothing your model fires on.'
+                      : 'What you saw, why you took it, how you managed it.'} />
         </Field>
 
-        <Field label="Mistake (optional)">
+        {!stood && <Field label="Mistake (optional)">
           <textarea rows={2} value={form.mistakes} onChange={set('mistakes')}
                     placeholder="What broke the plan?" />
-        </Field>
+        </Field>}
 
-        <Field label="What could you have done better (optional)">
+        {!stood && <Field label="What could you have done better (optional)">
           <textarea rows={2} value={form.improvements} onChange={set('improvements')}
                     placeholder="One concrete change for next time." />
-        </Field>
+        </Field>}
 
         <button type="submit" hidden />
       </form>

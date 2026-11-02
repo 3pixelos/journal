@@ -99,11 +99,18 @@ export default function BacktestPnl() {
   }
 
   // ---- the month's numbers -------------------------------------------
-  const s = useMemo(() => stats(trades), [trades])
+  // Days you passed on carry no P&L and belong nowhere near a win rate.
+  const taken = useMemo(() => trades.filter((t) => t.outcome !== 'no_trade'), [trades])
+  const aside = useMemo(() => trades.filter((t) => t.outcome === 'no_trade'), [trades])
+  const stoodAside = useMemo(
+    () => Object.fromEntries(aside.map((t) => [t.trade_date, t])),
+    [aside]
+  )
+  const s = useMemo(() => stats(taken), [taken])
   const start = Number(active?.starting_balance ?? 0)
   const end = start + s.net
   const growth = start > 0 ? s.net / start : 0
-  const days = useMemo(() => byDay(trades), [trades])
+  const days = useMemo(() => byDay(taken), [taken])
   const best = days.length ? days.reduce((a, b) => (b.pnl > a.pnl ? b : a)) : null
   const worst = days.length ? days.reduce((a, b) => (b.pnl < a.pnl ? b : a)) : null
 
@@ -208,6 +215,7 @@ export default function BacktestPnl() {
             <div className={`hero-value ${pnlClass(s.net)}`}>{money(s.net, { sign: true })}</div>
             <div className="hero-sub">
               {s.count} trade{s.count === 1 ? '' : 's'} · {(s.winRate * 100).toFixed(0)}% win rate
+              {aside.length > 0 && ` · ${aside.length} day${aside.length === 1 ? '' : 's'} stood aside`}
             </div>
           </div>
           <div className="spacer" />
@@ -231,18 +239,20 @@ export default function BacktestPnl() {
               sub={`${money(s.grossWin)} / ${money(s.grossLoss)}`} />
         <Stat label="Expectancy" value={money(s.expectancy, { sign: true })}
               tone={pnlClass(s.expectancy)} sub="per trade" />
-        <Stat label="Best / worst day"
-              value={best ? money(best.pnl, { sign: true }) : '—'}
-              tone={best ? pnlClass(best.pnl) : ''}
-              sub={worst ? `worst ${money(worst.pnl, { sign: true })}` : 'no days yet'} />
+        <Stat label="Stood aside"
+              value={aside.length}
+              sub={best
+                ? `best day ${money(best.pnl, { sign: true })}`
+                : 'days you passed on'} />
       </div>
 
       <Card title={`${monthLabel(active.month)} — click a day to trade it`}>
         <TradeCalendar
-          trades={trades}
+          trades={taken}
           month={active.month}
           selectedDay={openDay}
           onSelectDay={setOpenDay}
+          stoodAside={stoodAside}
         />
         {trades.length === 0 && (
           <div className="small muted center" style={{ marginTop: 14 }}>
@@ -276,14 +286,22 @@ export default function BacktestPnl() {
                   {dayTrades.map((t) => (
                     <tr key={t.id} className="clickable" onClick={() => setEditing(t)}>
                       <td>
-                        <span className={`chip dir-${t.direction}`}>
-                          {t.direction === 'long' ? '↑ Long' : '↓ Short'}
-                        </span>
+                        {t.outcome === 'no_trade' ? (
+                          <span className="chip">⊘ Stood aside</span>
+                        ) : (
+                          <span className={`chip dir-${t.direction}`}>
+                            {t.direction === 'long' ? '↑ Long' : '↓ Short'}
+                          </span>
+                        )}
                       </td>
                       <td>
-                        <span className={`jcard-tag ${Number(t.pnl) >= 0 ? 'win' : 'loss'}`}>
-                          {Number(t.pnl) >= 0 ? '↗ Win' : '↘ Loss'}
-                        </span>
+                        {t.outcome === 'no_trade' ? (
+                          <span className="faint small">—</span>
+                        ) : (
+                          <span className={`jcard-tag ${Number(t.pnl) >= 0 ? 'win' : 'loss'}`}>
+                            {Number(t.pnl) >= 0 ? '↗ Win' : '↘ Loss'}
+                          </span>
+                        )}
                       </td>
                       <td className="small muted">
                         {t.execution_notes
@@ -291,7 +309,8 @@ export default function BacktestPnl() {
                           : '—'}
                       </td>
                       <td className={`right mono ${pnlClass(t.pnl)}`} style={{ fontWeight: 700 }}>
-                        {money(t.pnl, { sign: true })}
+                        {t.outcome === 'no_trade' ? <span className="faint">—</span>
+                          : money(t.pnl, { sign: true })}
                       </td>
                     </tr>
                   ))}
