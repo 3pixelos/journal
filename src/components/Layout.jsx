@@ -12,6 +12,7 @@ const LINKS = [
   { to: '/trades', label: 'Trades', short: 'Trades', ico: '▤' },
   { to: '/journal', label: 'Journal', short: 'Journal', ico: '✎' },
   { to: '/backtesting', label: 'Backtesting', short: 'Tests', ico: '⌁' },
+  { to: '/backtest-pnl', label: 'Backtest P&L', short: 'P&L', ico: '◷' },
   { to: '/reminders', label: 'Reminders', short: 'Rules', ico: '◆' },
 ]
 

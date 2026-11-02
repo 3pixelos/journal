@@ -136,6 +136,7 @@ export function pageLabel(path) {
     '/trades': 'Trades',
     '/journal': 'Journal',
     '/backtesting': 'Backtesting',
+    '/backtest-pnl': 'Backtest P&L',
     '/reminders': 'Reminders',
     '/settings': 'Settings',
   }

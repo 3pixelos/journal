@@ -1992,3 +1992,15 @@ body { overflow-x: hidden; }
 }
 :root[data-theme='light'] .fx-ring { border-color: rgba(70, 82, 104, 0.5); }
 :root[data-theme='light'] .fx-fade { background: #46526a; }
+
+/* Backtest P&L enters like the results arriving */
+[data-page='/backtest-pnl'] > .col > *:not(.overlay) { animation-name: in-rise-far; }
+
+/* Seven destinations now; keep the phone bar legible. */
+@media (max-width: 760px) {
+  .mobile-nav .navlink { font-size: 9px; padding: 6px 0; }
+  .mobile-nav .navlink .ico { font-size: 15px; }
+}
+@media (max-width: 380px) {
+  .mobile-nav .navlink { font-size: 8.5px; letter-spacing: -0.01em; }
+}

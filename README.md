@@ -45,6 +45,7 @@ another user's session physically cannot read a row.
    - [`supabase/013_loss_fault.sql`](supabase/013_loss_fault.sql) — whose fault a loss was
    - [`supabase/014_news_loss.sql`](supabase/014_news_loss.sql) — losses caused by high-impact news
    - [`supabase/015_no_trade.sql`](supabase/015_no_trade.sql) — days you stood aside
+   - [`supabase/016_backtest_pnl.sql`](supabase/016_backtest_pnl.sql) — backtesting a month with demo money
 
 That one file creates every table, relationship, index, RLS policy, the
 `trade-screenshots` storage bucket and its policies, and a trigger that gives each new
@@ -196,6 +197,12 @@ Switching currency later restates everything rather than relabelling it: trades 
 recomputed from their stored dollar figures, and goals, limits and balances scale by the
 change in rate. Because the dollar figure is never touched, switching back returns the
 exact original numbers.
+
+**Backtest P&L** — pick a month, give it a starting balance, and trade it with demo
+money. The month appears as a calendar; click any day to size a trade exactly as you
+would a real one. It shows the month's result, win rate, profit factor, expectancy and
+what the balance became. Entirely separate tables from live trading, so none of it
+reaches your calendar, goals or equity curve.
 
 **Welcome screen** — "Welcome back, Adam" on a dark gradient for a few seconds after
 each sign-in, then it fades into the app. Once per session, not on every refresh.

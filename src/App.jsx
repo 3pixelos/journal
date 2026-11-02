@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Trades from './pages/Trades'
 import Journal from './pages/Journal'
 import Backtesting from './pages/Backtesting'
+import BacktestPnl from './pages/BacktestPnl'
 import Reminders from './pages/Reminders'
 import Settings from './pages/Settings'
 import Welcome from './components/Welcome'
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/trades" element={<Trades />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/backtesting" element={<Backtesting />} />
+          <Route path="/backtest-pnl" element={<BacktestPnl />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

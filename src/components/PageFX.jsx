@@ -15,6 +15,7 @@ export const FX_FOR = {
   '/trades': 'scan',
   '/journal': 'shutter',
   '/backtesting': 'rain',
+  '/backtest-pnl': 'scan',
   '/reminders': 'ripple',
   '/settings': 'dim',
 }
