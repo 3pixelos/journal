@@ -1515,6 +1515,12 @@ h1, h2, h3, h4, .hero-value, .stat .value {
 :root[data-motion='off'] .stars i,
 :root[data-motion='off'] .leaves i,
 :root[data-motion='off'] .leaves i::before,
+:root[data-motion='off'] .gusts i,
+:root[data-motion='off'] .clouds i,
+:root[data-motion='off'] .birds span,
+:root[data-motion='off'] .birds svg,
+:root[data-motion='off'] .rabbit,
+:root[data-motion='off'] .rabbit i,
 :root[data-motion='off'] .moon,
 :root[data-motion='off'] .content,
 :root[data-motion='off'] .content > *,
@@ -1604,9 +1610,24 @@ h1, h2, h3, h4, .hero-value, .stat .value {
    Two elements per leaf because they animate on different clocks: the
    outer one falls at a steady rate, the inner one sways and turns. One
    element trying to do both ends up with the sway stepping on the fall. */
-.leaves { display: none; position: absolute; inset: 0; }
-:root[data-theme='light'] .leaves { display: block; }
+.leaves, .gusts, .clouds, .birds, .rabbit { display: none; }
+:root[data-theme='light'] .leaves,
+:root[data-theme='light'] .gusts,
+:root[data-theme='light'] .clouds,
+:root[data-theme='light'] .birds,
+:root[data-theme='light'] .rabbit { display: block; }
 
+/* After the rule above, not before it: both selectors weigh the same, so
+   source order is the only thing deciding which one holds. With motion off
+   the scene is sky and still mountains — a frozen bird parked at the edge
+   of the screen is worse than no bird. */
+:root[data-motion='off'] .leaves,
+:root[data-motion='off'] .gusts,
+:root[data-motion='off'] .clouds,
+:root[data-motion='off'] .birds,
+:root[data-motion='off'] .rabbit { display: none; }
+
+.leaves { position: absolute; inset: 0; }
 .leaves i {
   position: absolute; top: -8%;
   animation-name: leaf-fall;
@@ -1623,14 +1644,105 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   box-shadow: 0 1px 3px rgba(16, 60, 90, 0.18);
   animation: leaf-sway var(--sway, 8s) ease-in-out infinite;
 }
+/* Carried sideways as it falls: a leaf that drops straight down is a leaf
+   in a sealed room, and the wind is the whole point. */
 @keyframes leaf-fall {
-  0%        { transform: translateY(-10vh); opacity: 0 }
-  8%, 88%   { opacity: 0.7 }
-  100%      { transform: translateY(112vh); opacity: 0 }
+  0%        { transform: translate(0, -12vh); opacity: 0 }
+  8%, 88%   { opacity: 0.75 }
+  100%      { transform: translate(var(--drift, 30vw), 112vh); opacity: 0 }
 }
 @keyframes leaf-sway {
   0%, 100% { transform: translateX(-15px) rotate(-20deg) }
   50%      { transform: translateX(15px) rotate(40deg) }
+}
+
+/* --- the wind itself ------------------------------------------------
+   Thin streaks crossing on long delays, so a gust arrives, passes, and
+   leaves the sky quiet again. */
+.gusts { position: absolute; inset: 0; }
+.gusts i {
+  position: absolute; left: -25%; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  animation-name: gust; animation-timing-function: cubic-bezier(0.4, 0, 0.5, 1);
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes gust {
+  0%          { transform: translate(0, 0) scaleX(0.4); opacity: 0 }
+  12%         { opacity: 0.8 }
+  70%         { opacity: 0.55 }
+  100%        { transform: translate(135vw, -18px) scaleX(1.35); opacity: 0 }
+}
+
+/* --- clouds --------------------------------------------------------- */
+.clouds { position: absolute; inset: 0; }
+.clouds i {
+  position: absolute; left: -30%;
+  background: radial-gradient(ellipse at 50% 60%,
+    rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.5) 52%, rgba(255, 255, 255, 0) 72%);
+  filter: blur(6px);
+  animation-name: cloud-drift; animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes cloud-drift {
+  from { transform: translateX(0) }
+  to   { transform: translateX(145vw) }
+}
+
+/* --- birds ---------------------------------------------------------- */
+.birds { position: absolute; inset: 0; }
+.birds span {
+  position: absolute; left: -8%;
+  animation-name: bird-cross; animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.birds svg {
+  display: block; overflow: visible;
+  fill: none; stroke: #2b7fae; stroke-width: 1.6;
+  stroke-linecap: round; opacity: 0.55;
+  /* the wings are two arcs; squashing the glyph vertically on a fast loop
+     is what a flap looks like from this far away */
+  animation-name: flap; animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+@keyframes bird-cross {
+  0%        { transform: translate(0, 0); opacity: 0 }
+  6%, 92%   { opacity: 1 }
+  50%       { transform: translate(60vw, -7vh) }
+  100%      { transform: translate(122vw, 3vh); opacity: 0 }
+}
+@keyframes flap {
+  0%, 100% { transform: scaleY(1) }
+  50%      { transform: scaleY(0.45) }
+}
+
+/* --- and a rabbit, because the foreground was empty ------------------
+   One crossing, then a long wait off-screen: something that never stops
+   crossing stops being a surprise. */
+.rabbit {
+  position: absolute; left: 0; bottom: 3%;
+  animation: rabbit-run 54s linear infinite;
+  will-change: transform;
+}
+.rabbit i {
+  display: block;
+  animation: rabbit-hop 0.72s ease-in-out infinite;
+}
+.rabbit svg {
+  display: block; width: 54px; height: 39px;
+  fill: #2f82b0; opacity: 0.8;
+}
+@keyframes rabbit-run {
+  0%   { transform: translateX(-14vw) }
+  34%  { transform: translateX(116vw) }
+  100% { transform: translateX(116vw) }
+}
+@keyframes rabbit-hop {
+  0%, 100% { transform: translateY(0) rotate(0deg) }
+  35%      { transform: translateY(-16px) rotate(-7deg) }
+  70%      { transform: translateY(0) rotate(2deg) }
 }
 
 /* --- the ranges ---------------------------------------------------- */
@@ -1695,6 +1807,8 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   /* half as many leaves on a phone: the same count in a third of the width
      reads as a swarm rather than a drift */
   .leaves i:nth-child(even) { display: none; }
+  .clouds i:nth-child(3) { display: none; }
+  .rabbit svg { width: 40px; height: 29px; }
   .ridge { height: 48%; }
   .ridge-far { height: 50%; }
   .mist { height: 110px; }
