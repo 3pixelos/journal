@@ -6,10 +6,10 @@
  * twice inside a 200%-wide SVG and the layer travels exactly one tile, so
  * the loop is seamless and never jumps.
  *
- * Dark mode is strictly black and white: green and red are reserved for
- * money, and a coloured night sky competed with the only two colours that
- * carry meaning here. Light mode is the same scene at daybreak, washed in
- * one blue with leaves drifting down through it.
+ * Strictly black and white — green and red are reserved for money, and a
+ * coloured background was competing with the only two colours that carry
+ * meaning here. Light mode is the same scene by day: a white sky, grey
+ * ranges, and leaves, birds and a rabbit moving through it.
  */
 
 // Every ridge starts and ends at the same height, which is what lets a tile
