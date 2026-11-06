@@ -6,9 +6,10 @@
  * twice inside a 200%-wide SVG and the layer travels exactly one tile, so
  * the loop is seamless and never jumps.
  *
- * Strictly black and white — green and red are reserved for money, and a
- * coloured background was competing with the only two colours that carry
- * meaning here.
+ * Dark mode is strictly black and white: green and red are reserved for
+ * money, and a coloured night sky competed with the only two colours that
+ * carry meaning here. Light mode is the same scene at daybreak, washed in
+ * one blue with leaves drifting down through it.
  */
 
 // Every ridge starts and ends at the same height, which is what lets a tile
@@ -22,6 +23,17 @@ const RIDGES = [
     cls: 'ridge-near', dur: '62s' },
   { d: 'M0,382 L130,355 L240,378 L360,346 L480,376 L600,350 L720,380 L840,352 L940,378 L1000,382',
     cls: 'ridge-fore', dur: '38s' },
+]
+
+// Leaves for the daytime scene: left %, size, fall seconds, delay, sway
+// seconds. Hand-picked rather than random so the drift never clumps and the
+// same page looks the same every time you open it.
+const LEAVES = [
+  [3, 17, 26, '0s', 7], [11, 12, 34, '6s', 9], [19, 20, 22, '3s', 6],
+  [27, 13, 30, '11s', 8], [35, 16, 25, '1s', 7], [43, 11, 36, '8s', 10],
+  [51, 19, 23, '15s', 6], [58, 14, 31, '4s', 9], [66, 12, 28, '19s', 8],
+  [74, 20, 21, '9s', 6], [82, 13, 33, '2s', 9], [89, 17, 27, '13s', 7],
+  [95, 12, 35, '17s', 10], [69, 15, 29, '23s', 8],
 ]
 
 const STARS = [
@@ -43,6 +55,17 @@ export default function Backdrop() {
             key={`${x}-${y}`}
             style={{ left: `${x}%`, top: `${y}%`, width: r * 2, height: r * 2,
                      animationDelay: delay }}
+          />
+        ))}
+      </div>
+
+      <div className="leaves">
+        {LEAVES.map(([x, size, dur, delay, sway]) => (
+          <i
+            key={`${x}-${delay}`}
+            style={{ left: `${x}%`, width: size, height: size,
+                     animationDuration: `${dur}s`, animationDelay: delay,
+                     '--sway': `${sway}s` }}
           />
         ))}
       </div>

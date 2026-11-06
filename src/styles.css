@@ -33,14 +33,19 @@
 }
 
 :root[data-theme='light'] {
-  --bg: #f4f5f7;
+  /* One blue runs the daytime theme: the sky, the ranges, the leaves and
+     every hairline are mixes of it, so nothing reads as a second colour.
+     Panels stay near-white — text contrast is not negotiable, and green and
+     red still have to carry the money. */
+  --sky: #45a7d8;
+  --bg: #e9f3fa;
   --bg-soft: #ffffff;
   --panel: #ffffff;
-  --panel-grad: linear-gradient(168deg, rgba(255, 255, 255, 0.82) 0%, rgba(251, 251, 252, 0.88) 100%);
-  --panel-2: #f1f2f5;
-  --panel-3: #e6e8ec;
-  --line: #e0e2e8;
-  --line-soft: #eceef2;
+  --panel-grad: linear-gradient(168deg, rgba(255, 255, 255, 0.84) 0%, rgba(247, 251, 253, 0.9) 100%);
+  --panel-2: #eef5fa;
+  --panel-3: #dfebf3;
+  --line: #d3e3ef;
+  --line-soft: #e7f0f7;
   --text: #08090b;
   --text-2: #33363d;
   --muted: #5d626c;
@@ -57,9 +62,9 @@
   --pos-glow: rgba(7, 148, 85, 0.3);
   --neg-glow: rgba(217, 38, 38, 0.28);
   --warn: #b45309;
-  --shadow: 0 8px 24px rgba(15, 20, 30, 0.09);
-  --shadow-sm: 0 1px 4px rgba(15, 20, 30, 0.07);
-  --ring: 0 0 0 3px rgba(8, 9, 11, 0.09);
+  --shadow: 0 8px 24px rgba(16, 60, 90, 0.11);
+  --shadow-sm: 0 1px 4px rgba(16, 60, 90, 0.08);
+  --ring: 0 0 0 3px rgba(69, 167, 216, 0.35);
   color-scheme: light;
 }
 
@@ -1508,6 +1513,8 @@ h1, h2, h3, h4, .hero-value, .stat .value {
 :root[data-motion='off'] .ridge,
 :root[data-motion='off'] .mist,
 :root[data-motion='off'] .stars i,
+:root[data-motion='off'] .leaves i,
+:root[data-motion='off'] .leaves i::before,
 :root[data-motion='off'] .moon,
 :root[data-motion='off'] .content,
 :root[data-motion='off'] .content > *,
@@ -1553,7 +1560,10 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   background: linear-gradient(to bottom, #0a0a0c 0%, #121216 46%, #1b1c21 74%, #232429 100%);
 }
 :root[data-theme='light'] .sky {
-  background: linear-gradient(to bottom, #ffffff 0%, #f4f5f7 48%, #e9ebee 76%, #dddfe4 100%);
+  /* deepest overhead and palest at the ridge line, the way a sky actually
+     sits — which also keeps the lightest part behind the cards */
+  background: linear-gradient(to bottom,
+    #45a7d8 0%, #68bbe3 34%, #a3d6ec 62%, #d3ecf7 84%, #eaf6fc 100%);
 }
 
 /* A cold white disc sitting low, just above the far ridge — the ranges are
@@ -1570,8 +1580,9 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   animation: moon-rise 120s ease-in-out infinite;
 }
 :root[data-theme='light'] .moon {
-  background: radial-gradient(circle at 38% 36%, #ffffff, #f2f3f5 60%, #e3e5e9 100%);
-  box-shadow: 0 0 70px 30px rgba(255, 255, 255, 0.8);
+  background: radial-gradient(circle at 38% 36%, #ffffff, #eaf7fd 58%, #c6e6f6 100%);
+  box-shadow: 0 0 80px 34px rgba(255, 255, 255, 0.75),
+              0 0 160px 70px rgba(69, 167, 216, 0.22);
 }
 @keyframes moon-rise {
   0%, 100% { transform: translateY(10px) }
@@ -1588,6 +1599,39 @@ h1, h2, h3, h4, .hero-value, .stat .value {
   50%      { opacity: 0.85; transform: scale(1.25) }
 }
 :root[data-theme='light'] .stars { display: none; }
+
+/* --- leaves, daytime only ------------------------------------------
+   Two elements per leaf because they animate on different clocks: the
+   outer one falls at a steady rate, the inner one sways and turns. One
+   element trying to do both ends up with the sway stepping on the fall. */
+.leaves { display: none; position: absolute; inset: 0; }
+:root[data-theme='light'] .leaves { display: block; }
+
+.leaves i {
+  position: absolute; top: -8%;
+  animation-name: leaf-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.leaves i::before {
+  content: ''; display: block; width: 100%; height: 100%;
+  border-radius: 0 100% 0 100%;   /* the leaf itself */
+  /* a shade deeper than the sky it falls through, or it disappears into
+     the blue it is made of */
+  background: linear-gradient(135deg, #3f97c9, #1d6f9e);
+  box-shadow: 0 1px 3px rgba(16, 60, 90, 0.18);
+  animation: leaf-sway var(--sway, 8s) ease-in-out infinite;
+}
+@keyframes leaf-fall {
+  0%        { transform: translateY(-10vh); opacity: 0 }
+  8%, 88%   { opacity: 0.7 }
+  100%      { transform: translateY(112vh); opacity: 0 }
+}
+@keyframes leaf-sway {
+  0%, 100% { transform: translateX(-15px) rotate(-20deg) }
+  50%      { transform: translateX(15px) rotate(40deg) }
+}
 
 /* --- the ranges ---------------------------------------------------- */
 .ridge {
@@ -1608,10 +1652,10 @@ h1, h2, h3, h4, .hero-value, .stat .value {
 .ridge-near { color: #17181d; height: 52%; }
 .ridge-fore { color: #0d0e11; height: 46%; }
 
-:root[data-theme='light'] .ridge-far  { color: #c7cad1; }
-:root[data-theme='light'] .ridge-mid  { color: #b2b6bf; }
-:root[data-theme='light'] .ridge-near { color: #9ba0ab; }
-:root[data-theme='light'] .ridge-fore { color: #848a96; }
+:root[data-theme='light'] .ridge-far  { color: #b7dcef; }
+:root[data-theme='light'] .ridge-mid  { color: #95cbe7; }
+:root[data-theme='light'] .ridge-near { color: #6fb7dd; }
+:root[data-theme='light'] .ridge-fore { color: #45a7d8; }
 
 @keyframes scroll-ridge {
   from { transform: translateX(0) }
@@ -1648,6 +1692,9 @@ h1, h2, h3, h4, .hero-value, .stat .value {
      disc will always end up peeking between two cards at some scroll
      position and reading as a glitch. The ranges carry the scene alone. */
   .moon { display: none; }
+  /* half as many leaves on a phone: the same count in a third of the width
+     reads as a swarm rather than a drift */
+  .leaves i:nth-child(even) { display: none; }
   .ridge { height: 48%; }
   .ridge-far { height: 50%; }
   .mist { height: 110px; }
