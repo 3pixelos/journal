@@ -17,6 +17,7 @@ export const FX_FOR = {
   '/backtesting': 'rain',
   '/backtest-pnl': 'scan',
   '/reminders': 'ripple',
+  '/boredom': 'ripple',
   '/settings': 'dim',
 }
 

@@ -8,6 +8,7 @@ import Journal from './pages/Journal'
 import Backtesting from './pages/Backtesting'
 import BacktestPnl from './pages/BacktestPnl'
 import Reminders from './pages/Reminders'
+import Boredom from './pages/Boredom'
 import Settings from './pages/Settings'
 import Welcome from './components/Welcome'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/backtesting" element={<Backtesting />} />
           <Route path="/backtest-pnl" element={<BacktestPnl />} />
           <Route path="/reminders" element={<Reminders />} />
+          <Route path="/boredom" element={<Boredom />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
