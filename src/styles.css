@@ -2231,6 +2231,11 @@ body { overflow-x: hidden; }
    board keeps its events, because it carries a button. */
 .stage-over.waiting { pointer-events: none; }
 
+/* your own line on the leaderboard */
+tr.me td { background: var(--accent-soft); }
+tr.me td:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+tr.me td:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+
 .lives { display: inline-flex; gap: 5px; align-items: center; }
 .lives i {
   width: 9px; height: 9px; border-radius: 50%;

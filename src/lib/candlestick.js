@@ -72,3 +72,58 @@ export function drawCandlestick(ctx, c, part = 'whole') {
 }
 
 export const stickColor = (bull) => (bull ? UP : DOWN)
+
+/**
+ * A bomb. Drawn from the same call site as a candlestick, so the loop does
+ * not have to care which one it is holding.
+ *
+ * The fuse spark is tied to the clock rather than to the bomb, so a screen
+ * with three of them does not have three sparks blinking in lockstep.
+ */
+export function drawBomb(ctx, b, t) {
+  const r = b.len * 0.3
+  ctx.save()
+  ctx.translate(b.x, b.y)
+  ctx.rotate(b.a)
+
+  const shell = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r)
+  shell.addColorStop(0, '#5a606b')
+  shell.addColorStop(0.55, '#262a31')
+  shell.addColorStop(1, '#0d0f13')
+  ctx.fillStyle = shell
+  ctx.beginPath()
+  ctx.arc(0, 0, r, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)'
+  ctx.lineWidth = 1.2
+  ctx.beginPath()
+  ctx.arc(-r * 0.3, -r * 0.34, r * 0.3, Math.PI * 0.9, Math.PI * 1.7)
+  ctx.stroke()
+
+  // cap and fuse
+  ctx.fillStyle = '#3b414b'
+  ctx.beginPath()
+  ctx.roundRect(-r * 0.28, -r * 1.22, r * 0.56, r * 0.4, r * 0.1)
+  ctx.fill()
+
+  ctx.strokeStyle = '#8a7a5c'
+  ctx.lineWidth = Math.max(1.6, r * 0.12)
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(0, -r * 1.2)
+  ctx.quadraticCurveTo(r * 0.5, -r * 1.7, r * 0.75, -r * 1.35)
+  ctx.stroke()
+
+  const spark = 1 + Math.sin(t * 19) * 0.3
+  const glow = ctx.createRadialGradient(r * 0.75, -r * 1.35, 0, r * 0.75, -r * 1.35, r * 0.6 * spark)
+  glow.addColorStop(0, '#fffbe8')
+  glow.addColorStop(0.4, '#ffb648')
+  glow.addColorStop(1, 'rgba(255, 140, 40, 0)')
+  ctx.fillStyle = glow
+  ctx.beginPath()
+  ctx.arc(r * 0.75, -r * 1.35, r * 0.55 * spark, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.restore()
+}

@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTitle } from '../lib/hooks'
-import { Card } from '../components/ui'
-import { drawCandlestick, stickColor } from '../lib/candlestick'
+import { Card, Empty, Loading } from '../components/ui'
+import Avatar from '../components/Avatar'
+import { drawCandlestick, drawBomb, stickColor } from '../lib/candlestick'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 /**
  * Candlesticks go up, you swipe, they come down in two pieces.
  *
- * Nothing here touches Supabase: no trade, no money, no row. The best score
- * lives in localStorage, because losing it costs nothing and a table for it
- * would be the silliest thing in the schema.
+ * No trade, no money, no balance: the only thing it writes is a score, to
+ * the one table in the schema everybody is allowed to read. Your P&L stays
+ * yours; a score nobody else can see is not worth keeping.
  *
  * The whole simulation runs in refs and draws to a canvas. Putting a candle
  * in React state would mean a render per frame per candle, and the one thing
@@ -20,11 +23,13 @@ const SPAWN_MIN = 620       // ms between launches
 const SPAWN_MAX = 1450
 const TRAIL_MS = 190        // how long the blade mark lingers
 const LIVES = 3
+const BOMB_CHANCE = 0.16    // of a launch being a bomb, once you are warm
+const BOMB_AFTER = 5        // cuts before the first one turns up
 
 const rand = (a, b) => a + Math.random() * (b - a)
 
-function spawn(W, H) {
-  const len = rand(62, 104)
+function spawn(W, H, bomb = false) {
+  const len = bomb ? rand(70, 92) : rand(62, 104)
   const x = rand(W * 0.16, W * 0.84)
   // aim for an apex somewhere in the upper half, then solve for the speed
   // that gets there — picking a velocity directly makes short screens throw
@@ -40,8 +45,13 @@ function spawn(W, H) {
     len,
     w: len * rand(0.2, 0.3),
     bull: Math.random() < 0.5,
+    bomb,
   }
 }
+
+/** What a swipe is worth: one is ten, and every extra in the same stroke
+ *  lifts the whole stroke. Four at once is worth sixteen singles. */
+const comboPoints = (n) => 10 * n * n
 
 /** Distance from a point to the segment p→q: the blade is a line, not a dot. */
 function distToSegment(px, py, ax, ay, bx, by) {
@@ -60,8 +70,14 @@ export default function Boredom() {
   const canvasRef = useRef(null)
   const game = useRef(null)
 
+  const { user } = useAuth()
   const [score, setScore] = useState(0)
+  const [cuts, setCuts] = useState(0)
+  const [bestCombo, setBestCombo] = useState(0)
   const [lives, setLives] = useState(LIVES)
+  const [endedOn, setEndedOn] = useState('')      // 'misses' | 'bomb'
+  const [board, setBoard] = useState(null)        // null until the first load
+  const [boardError, setBoardError] = useState('')
   const [over, setOver] = useState(false)
   // Nothing moves until you swipe. Candles that start flying the moment the
   // page loads cost you all three lives while you are still reading the title.
@@ -72,17 +88,78 @@ export default function Boredom() {
 
   const start = useCallback(() => {
     game.current = {
-      candles: [], halves: [], sparks: [], trail: [],
-      nextSpawn: 250, score: 0, lives: LIVES,
+      candles: [], halves: [], sparks: [], trail: [], pops: [],
+      nextSpawn: 250, score: 0, cuts: 0, lives: LIVES, bestCombo: 0,
       started: false, over: false,
     }
     setScore(0)
+    setCuts(0)
+    setBestCombo(0)
     setLives(LIVES)
     setOver(false)
     setStarted(false)
+    setEndedOn('')
   }, [])
 
   useEffect(() => { start() }, [start])
+
+  const loadBoard = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('boredom_scores')
+      .select('user_id, best, best_combo, runs, updated_at')
+      .order('best', { ascending: false })
+      .limit(20)
+    if (error) {
+      // The page still plays without the table; only the ranking needs it.
+      setBoardError(/does not exist|schema cache/i.test(error.message)
+        ? 'Run migration 020 to turn the leaderboard on.'
+        : error.message)
+      setBoard([])
+      return
+    }
+    const rows = data || []
+    const ids = rows.map((r) => r.user_id)
+    const { data: profs } = ids.length
+      ? await supabase.from('profiles').select('id, display_name, avatar').in('id', ids)
+      : { data: [] }
+    const by = Object.fromEntries((profs || []).map((p) => [p.id, p]))
+    setBoardError('')
+    setBoard(rows.map((r) => ({ ...r, who: by[r.user_id] })))
+  }, [])
+
+  useEffect(() => { loadBoard() }, [loadBoard])
+
+  /** Called once a run ends. A worse run can never cost you your best: the
+   *  greatest() lives in the function, not here. */
+  const submit = useCallback(async (finalScore, combo) => {
+    if (!finalScore) return
+    const { error } = await supabase.rpc('boredom_submit', {
+      new_score: finalScore, new_combo: combo,
+    })
+    if (error) {
+      setBoardError(/does not exist|schema cache/i.test(error.message)
+        ? 'Run migration 020 to turn the leaderboard on.'
+        : error.message)
+      return
+    }
+    loadBoard()
+  }, [loadBoard])
+
+  // One way out of a round, whether the bomb got you or the misses did:
+  // two copies of this drifted apart the moment bombs arrived.
+  const finish = useCallback((reason) => {
+    const g = game.current
+    if (!g || g.over) return
+    g.over = true
+    setOver(true)
+    setEndedOn(reason)
+    setBest((b) => {
+      const next = Math.max(b, g.score)
+      try { localStorage.setItem('tj-boredom-best', String(next)) } catch { /* private mode */ }
+      return next
+    })
+    submit(g.score, g.bestCombo)
+  }, [submit])
 
   // ---- the loop -------------------------------------------------------
   useEffect(() => {
@@ -120,7 +197,12 @@ export default function Boredom() {
         g.nextSpawn -= dt * 1000
         if (g.nextSpawn <= 0) {
           const n = Math.random() < 0.22 ? 2 : 1
-          for (let i = 0; i < n; i++) g.candles.push(spawn(W, H))
+          for (let i = 0; i < n; i++) {
+            // No bombs until you have cut a few: losing on the first throw
+            // teaches you nothing except that the page is unfair.
+            const bomb = g.cuts >= BOMB_AFTER && Math.random() < BOMB_CHANCE
+            g.candles.push(spawn(W, H, bomb))
+          }
           g.nextSpawn = rand(SPAWN_MIN, SPAWN_MAX)
         }
       }
@@ -136,18 +218,11 @@ export default function Boredom() {
       const kept = []
       for (const c of g.candles) {
         if (c.y - c.len > H + 60 && c.vy > 0) {
-          if (!g.over) {
+          // Letting a bomb fall is the correct play, so it costs nothing.
+          if (!g.over && !c.bomb) {
             g.lives -= 1
             setLives(g.lives)
-            if (g.lives <= 0) {
-              g.over = true
-              setOver(true)
-              setBest((b) => {
-                const next = Math.max(b, g.score)
-                try { localStorage.setItem('tj-boredom-best', String(next)) } catch { /* private mode */ }
-                return next
-              })
-            }
+            if (g.lives <= 0) finish('misses')
           }
           continue
         }
@@ -156,12 +231,16 @@ export default function Boredom() {
       g.candles = kept
       g.halves = g.halves.filter((h) => h.y - h.len < H + 160)
       g.sparks = g.sparks.filter((s) => (s.life -= dt) > 0)
+      g.pops = g.pops.filter((p) => (p.life -= dt) > 0)
       g.trail = g.trail.filter((p) => now - p.t < TRAIL_MS)
 
       // ---- draw --------------------------------------------------------
       ctx.clearRect(0, 0, W, H)
       for (const h of g.halves) drawCandlestick(ctx, h, h.part)
-      for (const c of g.candles) drawCandlestick(ctx, c, 'whole')
+      for (const c of g.candles) {
+        if (c.bomb) drawBomb(ctx, c, t)
+        else drawCandlestick(ctx, c, 'whole')
+      }
 
       for (const s of g.sparks) {
         ctx.globalAlpha = Math.max(0, s.life / s.max)
@@ -169,6 +248,17 @@ export default function Boredom() {
         ctx.beginPath()
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
         ctx.fill()
+      }
+      ctx.globalAlpha = 1
+
+      // combo call-outs, rising and fading where the stroke landed
+      for (const p of g.pops) {
+        const k = p.life / p.max
+        ctx.globalAlpha = Math.min(1, k * 1.6)
+        ctx.fillStyle = p.color
+        ctx.textAlign = 'center'
+        ctx.font = `800 ${p.size}px -apple-system, BlinkMacSystemFont, Inter, sans-serif`
+        ctx.fillText(p.text, p.x, p.y - (1 - k) * 46)
       }
       ctx.globalAlpha = 1
 
@@ -205,13 +295,36 @@ export default function Boredom() {
     const ny = (by - ay) / blen
 
     let hits = 0
-    g.candles = g.candles.filter((c) => {
-      if (distToSegment(c.x, c.y, ax, ay, bx, by) > c.len * 0.48) return true
-      hits += 1
+    let hitX = 0
+    let hitY = 0
+    let bombed = false
 
-      // the two pieces leave along the blade, one each way
+    g.candles = g.candles.filter((c) => {
+      // A bomb is a ball, so it is judged on its radius; a candlestick is
+      // long and thin and judged on its length.
+      const reach = c.bomb ? c.len * 0.34 : c.len * 0.48
+      if (distToSegment(c.x, c.y, ax, ay, bx, by) > reach) return true
+
+      if (c.bomb) {
+        bombed = true
+        for (let i = 0; i < 26; i++) {
+          const life = rand(0.3, 0.75)
+          g.sparks.push({
+            x: c.x, y: c.y,
+            vx: rand(-420, 420), vy: rand(-420, 260),
+            a: 0, va: 0, r: rand(1.5, 4.5), life, max: life,
+            color: i % 3 ? '#ffb648' : '#ffe9b0',
+          })
+        }
+        return false
+      }
+
+      hits += 1
+      hitX += c.x
+      hitY += c.y
+
       // Each piece starts a quarter of a candle either side of the cut and
-              // leaves along the blade, one each way.
+      // leaves along the blade, one each way.
       for (const part of ['top', 'bottom']) {
         const sign = part === 'top' ? 1 : -1
         const off = (part === 'top' ? -1 : 1) * c.len * 0.25
@@ -241,10 +354,29 @@ export default function Boredom() {
     })
 
     if (hits) {
-      g.score += hits
+      const gained = comboPoints(hits)
+      g.score += gained
+      g.cuts += hits
       setScore(g.score)
+      setCuts(g.cuts)
+      if (hits > g.bestCombo) {
+        g.bestCombo = hits
+        setBestCombo(hits)
+      }
+      g.pops.push({
+        x: hitX / hits,
+        y: hitY / hits,
+        text: hits > 1 ? `COMBO ×${hits}  +${gained}` : `+${gained}`,
+        size: hits > 1 ? 22 + hits * 3 : 17,
+        color: hits > 1 ? '#ffd166' : 'rgba(255, 255, 255, 0.85)',
+        life: hits > 1 ? 1.1 : 0.7,
+        max: hits > 1 ? 1.1 : 0.7,
+      })
     }
-  }, [])
+
+    // Last, so the points for anything caught in the same stroke still land.
+    if (bombed) finish('bomb')
+  }, [finish])
 
   /**
    * The blade is wherever the pointer is going, held down or not — a mouse
@@ -281,16 +413,18 @@ export default function Boredom() {
           <h2>Boredom</h2>
           <div className="small muted">
             Candlesticks go up. Drag through one and it comes down in two
-            pieces. Nothing here counts towards anything.
+            pieces. None of it touches your P&L — only the score is shared.
           </div>
         </div>
       </div>
 
       <Card
-        title={`Score ${score}`}
+        title={`${score} points`}
         action={
           <div className="row" style={{ gap: 12, alignItems: 'center' }}>
-            <span className="small muted">Best {best}</span>
+            <span className="small muted">
+              {cuts} cut{bestCombo > 1 ? ` · best ×${bestCombo}` : ''} · best {best}
+            </span>
             <span className="lives" aria-label={`${lives} lives left`}>
               {Array.from({ length: LIVES }).map((_, i) => (
                 <i key={i} className={i < lives ? 'on' : ''} />
@@ -319,9 +453,11 @@ export default function Boredom() {
             <div className={`stage-over ${over ? '' : 'waiting'}`}>
               {over ? (
                 <>
-                  <div className="big">{score} cut</div>
+                  <div className="big">{score}</div>
                   <div className="small muted">
-                    {score >= best && score > 0 ? 'Your best yet.' : `Best ${best}.`}
+                    {endedOn === 'bomb' ? '💥 You cut a bomb. ' : ''}
+                    {cuts} cut{bestCombo > 1 ? `, best combo ×${bestCombo}` : ''}
+                    {score >= best && score > 0 ? ' — your best yet.' : `. Best ${best}.`}
                   </div>
                   <button className="btn-go" onClick={start}>Again</button>
                 </>
@@ -338,9 +474,52 @@ export default function Boredom() {
           )}
         </div>
         <div className="tiny faint" style={{ marginTop: 10 }}>
-          Drag across a candlestick to cut it — a tap will not do it, the
-          blade has to travel. Three misses and it stops.
+          One candlestick is 10. Two in the same stroke is 40, three is 90 —
+          the whole stroke is worth more, not just the extra one. Three misses
+          and it stops, and <strong>cutting a bomb ends it there</strong>;
+          letting one fall costs nothing.
         </div>
+      </Card>
+
+      <Card title="Leaderboard">
+        {boardError && <div className="small muted" style={{ marginBottom: 10 }}>{boardError}</div>}
+        {board === null ? (
+          <Loading rows={3} />
+        ) : board.length === 0 ? (
+          <Empty icon="▮" title="Nobody has played yet"
+                 hint="Finish a run and your score lands here." />
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th style={{ width: 44 }} /><th>Player</th>
+                    <th className="right">Best combo</th><th className="right">Runs</th>
+                    <th className="right">Score</th></tr>
+              </thead>
+              <tbody>
+                {board.map((row, i) => (
+                  <tr key={row.user_id} className={row.user_id === user?.id ? 'me' : ''}>
+                    <td className="mono faint">{i + 1}</td>
+                    <td>
+                      <span className="row" style={{ gap: 8, alignItems: 'center' }}>
+                        <Avatar name={row.who?.display_name || 'Trader'} avatar={row.who?.avatar} />
+                        <span style={{ fontWeight: 650 }}>
+                          {row.who?.display_name || 'Someone'}
+                          {row.user_id === user?.id && <span className="faint small"> · you</span>}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="right mono small muted">
+                      {row.best_combo > 1 ? `×${row.best_combo}` : '—'}
+                    </td>
+                    <td className="right mono small muted">{row.runs}</td>
+                    <td className="right mono" style={{ fontWeight: 750 }}>{row.best}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   )
