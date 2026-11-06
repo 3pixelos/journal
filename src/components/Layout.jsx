@@ -14,7 +14,7 @@ const LINKS = [
   { to: '/backtesting', label: 'Backtesting', short: 'Tests', ico: '⌁' },
   { to: '/backtest-pnl', label: 'Backtest P&L', short: 'P&L', ico: '◷' },
   { to: '/reminders', label: 'Reminders', short: 'Rules', ico: '◆' },
-  { to: '/boredom', label: 'Boredom', short: 'Bored', ico: '🕯' },
+  { to: '/boredom', label: 'Boredom', short: 'Bored', ico: '▮' },
 ]
 
 function applyTheme(next) {

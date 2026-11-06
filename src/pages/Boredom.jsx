@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTitle } from '../lib/hooks'
 import { Card } from '../components/ui'
-import { drawCandle } from '../lib/candle'
+import { drawCandlestick, stickColor } from '../lib/candlestick'
 
 /**
- * Candles go up, you swipe, they come down in two pieces.
+ * Candlesticks go up, you swipe, they come down in two pieces.
  *
  * Nothing here touches Supabase: no trade, no money, no row. The best score
  * lives in localStorage, because losing it costs nothing and a table for it
@@ -24,7 +24,7 @@ const LIVES = 3
 const rand = (a, b) => a + Math.random() * (b - a)
 
 function spawn(W, H) {
-  const len = rand(52, 78)
+  const len = rand(62, 104)
   const x = rand(W * 0.16, W * 0.84)
   // aim for an apex somewhere in the upper half, then solve for the speed
   // that gets there — picking a velocity directly makes short screens throw
@@ -38,8 +38,8 @@ function spawn(W, H) {
     a: rand(-0.4, 0.4),
     va: rand(-2.6, 2.6),
     len,
-    w: len * rand(0.22, 0.28),
-    seed: Math.random() * 10,
+    w: len * rand(0.2, 0.3),
+    bull: Math.random() < 0.5,
   }
 }
 
@@ -74,7 +74,7 @@ export default function Boredom() {
     game.current = {
       candles: [], halves: [], sparks: [], trail: [],
       nextSpawn: 250, score: 0, lives: LIVES,
-      started: false, over: false, down: false,
+      started: false, over: false,
     }
     setScore(0)
     setLives(LIVES)
@@ -154,18 +154,18 @@ export default function Boredom() {
         kept.push(c)
       }
       g.candles = kept
-      g.halves = g.halves.filter((h) => h.y - h.len < H + 120)
+      g.halves = g.halves.filter((h) => h.y - h.len < H + 160)
       g.sparks = g.sparks.filter((s) => (s.life -= dt) > 0)
       g.trail = g.trail.filter((p) => now - p.t < TRAIL_MS)
 
       // ---- draw --------------------------------------------------------
       ctx.clearRect(0, 0, W, H)
-      for (const h of g.halves) drawCandle(ctx, h, t, h.part)
-      for (const c of g.candles) drawCandle(ctx, c, t, 'whole')
+      for (const h of g.halves) drawCandlestick(ctx, h, h.part)
+      for (const c of g.candles) drawCandlestick(ctx, c, 'whole')
 
       for (const s of g.sparks) {
         ctx.globalAlpha = Math.max(0, s.life / s.max)
-        ctx.fillStyle = '#fff3d4'
+        ctx.fillStyle = s.color
         ctx.beginPath()
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
         ctx.fill()
@@ -210,30 +210,31 @@ export default function Boredom() {
       hits += 1
 
       // the two pieces leave along the blade, one each way
-      const parts = [
-        { part: 'top', sign: 1, len: c.len * 0.44, off: -c.len * 0.26 },
-        { part: 'bottom', sign: -1, len: c.len * 0.56, off: c.len * 0.22 },
-      ]
-      for (const p of parts) {
+      // Each piece starts a quarter of a candle either side of the cut and
+              // leaves along the blade, one each way.
+      for (const part of ['top', 'bottom']) {
+        const sign = part === 'top' ? 1 : -1
+        const off = (part === 'top' ? -1 : 1) * c.len * 0.25
         g.halves.push({
-          x: c.x + Math.sin(c.a) * -p.off,
-          y: c.y + Math.cos(c.a) * p.off,
-          vx: c.vx + nx * 150 * p.sign,
-          vy: c.vy + ny * 150 * p.sign - 40,
+          x: c.x - Math.sin(c.a) * off,
+          y: c.y + Math.cos(c.a) * off,
+          vx: c.vx + nx * 150 * sign,
+          vy: c.vy + ny * 150 * sign - 40,
           a: c.a,
-          va: c.va + p.sign * rand(3, 6),
-          len: p.len,
+          va: c.va + sign * rand(3, 6),
+          len: c.len,
           w: c.w,
-          seed: c.seed,
-          part: p.part,
+          bull: c.bull,
+          part,
         })
       }
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 8; i++) {
         const life = rand(0.25, 0.5)
         g.sparks.push({
           x: c.x, y: c.y,
-          vx: rand(-120, 120), vy: rand(-170, 40),
-          a: 0, va: 0, r: rand(1, 2.6), life, max: life,
+          vx: rand(-130, 130), vy: rand(-180, 40),
+          a: 0, va: 0, r: rand(1, 2.8), life, max: life,
+          color: stickColor(c.bull),
         })
       }
       return false
@@ -245,16 +246,32 @@ export default function Boredom() {
     }
   }, [])
 
+  /**
+   * The blade is wherever the pointer is going, held down or not — a mouse
+   * has to be dragged across the board either way, and holding a button
+   * down the whole time is work for no reason. A finger only ever reports
+   * movement while it is touching, so touch is unchanged.
+   */
   const pointer = useCallback((e) => {
     const g = game.current
     if (!g) return
-    const r = canvasRef.current.getBoundingClientRect()
-    const x = e.clientX - r.left
-    const y = e.clientY - r.top
+    const box = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - box.left
+    const y = e.clientY - box.top
+    const now = performance.now()
     const prev = g.trail[g.trail.length - 1]
-    g.trail.push({ x, y, t: performance.now() })
+
+    g.trail.push({ x, y, t: now })
     if (g.trail.length > 16) g.trail.shift()
-    if (prev && g.down) cut(prev.x, prev.y, x, y)
+
+    if (!g.started && !g.over) {
+      g.started = true
+      setStarted(true)
+    }
+    // Only join points that arrived one after the other. A pointer that
+    // left the board and came back somewhere else would otherwise cut
+    // along the line between, taking everything in its path.
+    if (prev && now - prev.t < 100) cut(prev.x, prev.y, x, y)
   }, [cut])
 
   return (
@@ -263,8 +280,8 @@ export default function Boredom() {
         <div>
           <h2>Boredom</h2>
           <div className="small muted">
-            Candles go up. Swipe through one and it comes down in two pieces.
-            Nothing here counts towards anything.
+            Candlesticks go up. Drag through one and it comes down in two
+            pieces. Nothing here counts towards anything.
           </div>
         </div>
       </div>
@@ -287,20 +304,15 @@ export default function Boredom() {
           <canvas
             ref={canvasRef}
             onPointerDown={(e) => {
-              // Capture keeps the blade alive if the finger leaves the box;
-              // some browsers refuse an id they do not consider active.
+              // Capture keeps a finger's stroke alive past the edge of the
+              // board; some browsers refuse an id they do not consider active.
               try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* no capture */ }
-              game.current.down = true
               game.current.trail = []
-              if (!game.current.started && !game.current.over) {
-                game.current.started = true
-                setStarted(true)
-              }
               pointer(e)
             }}
             onPointerMove={pointer}
-            onPointerUp={() => { game.current.down = false }}
-            onPointerLeave={() => { game.current.down = false }}
+            onPointerEnter={() => { game.current.trail = [] }}
+            onPointerLeave={() => { game.current.trail = [] }}
           />
 
           {(over || !started) && (
@@ -317,7 +329,8 @@ export default function Boredom() {
                 <>
                   <div className="big">Swipe to start</div>
                   <div className="small muted">
-                    Drag anywhere in here. The blade cuts whatever it crosses.
+                    Move across the board. The blade cuts whatever it crosses —
+                    no need to hold anything down.
                   </div>
                 </>
               )}
@@ -325,8 +338,8 @@ export default function Boredom() {
           )}
         </div>
         <div className="tiny faint" style={{ marginTop: 10 }}>
-          Drag across a candle to cut it — a tap will not do it, the blade has
-          to travel. Three misses and it stops.
+          Drag across a candlestick to cut it — a tap will not do it, the
+          blade has to travel. Three misses and it stops.
         </div>
       </Card>
     </div>
