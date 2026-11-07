@@ -32,6 +32,10 @@ const OVERLAY = {
 
 export const getAvatar = (id) => AVATARS.find((a) => a.id === id) || AVATARS[0]
 
+/** profiles.avatar holds either a preset id or a path in the avatars bucket.
+ *  A slash is the tell: no preset has one, every storage path does. */
+export const isUploaded = (avatar) => Boolean(avatar && avatar.includes('/'))
+
 /** Inline style for an avatar of the given preset. */
 export function avatarStyle(id) {
   const a = getAvatar(id)

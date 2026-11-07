@@ -91,6 +91,7 @@ export const supabase = createClient(url, anonKey, {
 })
 
 export const SCREENSHOT_BUCKET = 'trade-screenshots'
+export const AVATAR_BUCKET = 'avatars'
 
 /**
  * Turn whatever the user typed into the email Supabase Auth needs.

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
-import { signPaths } from './storage'
+import { signPaths, signAvatar } from './storage'
 import { useAuth } from '../context/AuthContext'
+import { isUploaded } from './avatars'
 
 /**
  * Signed URLs for a list of storage paths, refreshed when the list changes.
@@ -209,4 +210,24 @@ export function useCountUp(target, ms = 700) {
   }, [to, ms])
 
   return value
+}
+
+/**
+ * The URL for someone's profile picture, or null when they are on a preset.
+ *
+ * Signing is cached by path in storage.js, so a page full of the same three
+ * faces makes one request each, not one per place they appear.
+ */
+export function useAvatarUrl(avatar) {
+  const uploaded = isUploaded(avatar)
+  const [url, setUrl] = useState(null)
+
+  useEffect(() => {
+    if (!uploaded) { setUrl(null); return }
+    let alive = true
+    signAvatar(avatar).then((u) => { if (alive) setUrl(u) })
+    return () => { alive = false }
+  }, [avatar, uploaded])
+
+  return url
 }

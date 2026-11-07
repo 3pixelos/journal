@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -9,7 +9,8 @@ import Avatar from '../components/Avatar'
 import ModelsManager from '../components/ModelsManager'
 import CurrencySwitch from '../components/CurrencySwitch'
 import { MOTION_OPTIONS, getMotionPref, setMotionPref, systemPrefersReduced } from '../lib/motion'
-import { AVATARS } from '../lib/avatars'
+import { uploadAvatar, removeAvatar, forgetAvatar } from '../lib/storage'
+import { AVATARS, isUploaded } from '../lib/avatars'
 import { KINDS } from '../components/TagPicker'
 
 export default function Settings() {
@@ -27,6 +28,8 @@ export default function Settings() {
   const [newAccount, setNewAccount] = useState({ name: '', broker: '', starting_balance: '' })
   const [pw, setPw] = useState({ next: '', confirm: '' })
   const [motion, setMotion] = useState(getMotionPref)
+  const pickFile = useRef(null)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     setName(profile?.display_name || '')
@@ -36,6 +39,39 @@ export default function Settings() {
     setMsg(m)
     setErr('')
     setTimeout(() => setMsg(''), 2500)
+  }
+
+  /**
+   * Upload and switch to it in one go.
+   *
+   * Saved immediately rather than on the form's Save: picking a picture is
+   * the whole gesture, and a face that sits in the preview until you notice
+   * a button underneath it is a face nobody ends up with.
+   */
+  async function pickPicture(file) {
+    if (!file) return
+    setUploading(true)
+    setErr('')
+    const previous = profile?.avatar
+    try {
+      const path = await uploadAvatar(file, user.id)
+      const { data, error } = await supabase
+        .from('profiles').update({ avatar: path }).eq('id', user.id).select().single()
+      if (error) throw error
+      setAvatar(path)
+      setProfile(data)
+      // the old file is nobody's picture now
+      if (isUploaded(previous)) {
+        forgetAvatar(previous)
+        removeAvatar(previous)
+      }
+      flash('Picture updated.')
+    } catch (e) {
+      setErr(e.message || String(e))
+    } finally {
+      setUploading(false)
+      if (pickFile.current) pickFile.current.value = ''
+    }
   }
 
   async function saveProfile(e) {
@@ -55,6 +91,12 @@ export default function Settings() {
           ? 'That display name is already taken — pick another.'
           : error.message
       )
+    }
+    // Dropping back to a preset leaves the uploaded file with no owner.
+    const previous = profile?.avatar
+    if (isUploaded(previous) && previous !== avatar) {
+      forgetAvatar(previous)
+      removeAvatar(previous)
     }
     setProfile(data)
     flash('Profile saved.')
@@ -108,7 +150,38 @@ export default function Settings() {
             </div>
           </div>
 
-          <Field label="Pick an avatar">
+          <Field label="Your own picture">
+            <div className="row-wrap" style={{ gap: 10, alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={uploading}
+                onClick={() => pickFile.current?.click()}
+              >
+                {uploading ? 'Uploading…' : isUploaded(avatar) ? 'Change picture' : 'Upload a picture'}
+              </button>
+              {isUploaded(avatar) && (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => setAvatar('mono')}
+                  title="Go back to one of the presets"
+                >
+                  Use a preset instead
+                </button>
+              )}
+              <span className="tiny faint">PNG or JPEG, up to 3 MB. Only people signed in here can see it.</span>
+              <input
+                ref={pickFile}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => pickPicture(e.target.files?.[0])}
+              />
+            </div>
+          </Field>
+
+          <Field label={isUploaded(avatar) ? 'Or pick a preset' : 'Pick an avatar'}>
             <div className="avpick">
               {AVATARS.map((a) => (
                 <button

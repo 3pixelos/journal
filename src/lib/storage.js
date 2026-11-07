@@ -1,4 +1,4 @@
-import { supabase, SCREENSHOT_BUCKET } from './supabase'
+import { supabase, SCREENSHOT_BUCKET, AVATAR_BUCKET } from './supabase'
 
 const MAX_BYTES = 10 * 1024 * 1024
 
@@ -74,3 +74,63 @@ export async function signPaths(paths, expiresIn = 3600) {
       : null,
   }
 }
+
+/**
+ * Upload a profile picture into the caller's own folder: <uid>/<uuid>.<ext>
+ * As with screenshots, the leading folder is what the storage policy checks.
+ */
+export async function uploadAvatar(file, userId) {
+  if (!file.type.startsWith('image/')) throw new Error('Only image files are allowed.')
+  if (file.size > 3 * 1024 * 1024) throw new Error('Picture is larger than 3 MB.')
+
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const path = `${userId}/${crypto.randomUUID()}.${ext || 'png'}`
+
+  const { error } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type })
+  if (error) throw error
+  return path
+}
+
+export async function removeAvatar(path) {
+  await supabase.storage.from(AVATAR_BUCKET).remove([path])
+}
+
+/**
+ * Signed URLs for profile pictures, cached by path.
+ *
+ * An avatar turns up in a dozen places on a page — every journal tile, every
+ * row of the trading floor — and signing each one separately would be a
+ * network round trip per face, repeated on every render. One promise per
+ * path, shared by everyone who asks, re-signed when it is close to expiring.
+ */
+const AVATAR_TTL = 3600
+const avatarCache = new Map()   // path -> { url, until, promise }
+
+export function signAvatar(path) {
+  const now = Date.now()
+  const hit = avatarCache.get(path)
+  if (hit && hit.url && hit.until > now) return Promise.resolve(hit.url)
+  if (hit?.promise) return hit.promise
+
+  const promise = supabase.storage
+    .from(AVATAR_BUCKET)
+    .createSignedUrl(path, AVATAR_TTL)
+    .then(({ data, error }) => {
+      const url = error ? null : data?.signedUrl || null
+      // Re-sign a minute early rather than at the stroke of expiry.
+      avatarCache.set(path, { url, until: now + (AVATAR_TTL - 60) * 1000 })
+      return url
+    })
+    .catch(() => {
+      avatarCache.delete(path)
+      return null
+    })
+
+  avatarCache.set(path, { ...(hit || {}), promise })
+  return promise
+}
+
+/** Forget one path, so the next render signs the new file rather than the old. */
+export const forgetAvatar = (path) => avatarCache.delete(path)

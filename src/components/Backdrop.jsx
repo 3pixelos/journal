@@ -136,8 +136,34 @@ export default function Backdrop() {
         </div>
       ))}
 
-      {/* Painted after the ranges so it crosses in front of them, which is
-          the only thing that makes it read as being on the ground. */}
+      {/* Standing on the near ridge, facing the weather. Painted after the
+          ranges for the same reason the rabbit is: in front of them, or he
+          is a shape floating in the sky. */}
+      <div className="samurai">
+        <svg viewBox="0 0 120 210" aria-hidden="true">
+          <g className="sam-body">
+            {/* kasa — the hat reads as a samurai faster than anything else */}
+            <path d="M12,52 Q60,6 108,52 Q60,70 12,52 Z" />
+            <rect x="54" y="52" width="12" height="12" rx="3" />
+            {/* shoulders and torso */}
+            <path d="M40,64 Q60,58 80,64 L86,104 Q60,112 34,104 Z" />
+            {/* hakama, wide and heavy */}
+            <path d="M36,102 Q60,110 84,102 L94,186 Q84,192 74,186 L62,126 L58,126
+                     L46,186 Q36,192 26,186 Z" />
+            {/* feet */}
+            <path d="M22,186 h22 q4,0 4,5 t-4,5 H22 q-4,0 -4,-5 t4,-5 Z" />
+            <path d="M76,186 h22 q4,0 4,5 t-4,5 H76 q-4,0 -4,-5 t4,-5 Z" />
+            {/* sword arm, and the katana resting point-down behind him */}
+            <path d="M80,70 q14,14 12,34 l-7,2 q-2,-18 -11,-30 Z" />
+            <path d="M90,100 L101,104 L99,112 L88,108 Z" />
+            <path d="M99,110 Q112,142 104,178 L99,177 Q106,142 95,113 Z" />
+          </g>
+          {/* the cloak is its own group: it is the only part the wind moves */}
+          <path className="sam-cloak"
+                d="M38,66 Q16,96 10,150 Q30,140 34,106 Q36,84 44,70 Z" />
+        </svg>
+      </div>
+
       <div className="rabbit">
         <i>
           <svg viewBox="0 0 70 50">
