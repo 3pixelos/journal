@@ -66,6 +66,9 @@ export function floorStats(entries) {
       streak: streakOf(sorted),
       best: bestStreakOf(sorted),
       last: sorted[0]?.entry_date || null,
+      // filled in by withBacktests; zero here so a card never renders
+      // "undefined" for somebody the counts query knew nothing about
+      backtests: 0, btJournal: 0, btDemo: 0,
     }
   }
   return out
@@ -75,4 +78,31 @@ export function floorStats(entries) {
 export const EMPTY_STATS = {
   entries: 0, wins: 0, losses: 0, aside: 0, unmarked: 0,
   winRate: 0, decided: 0, streak: 0, best: 0, last: null,
+  backtests: 0, btJournal: 0, btDemo: 0,
+}
+
+/**
+ * Fold the backtest counts into the per-user stats.
+ *
+ * These cannot come from the same query as the rest: backtests on the
+ * Backtesting page need not be shared, and the ones on Backtest P&L sit in
+ * a table only their owner can read, so the totals arrive from the
+ * `backtest_counts` function instead. Somebody may show up here having run
+ * backtests without ever sharing a journal entry, so a missing row is
+ * created rather than skipped — otherwise their card would read zero.
+ *
+ * @param stats  output of floorStats, not mutated
+ * @param counts rows of { trader, backtests, journaled, demo_trades }
+ */
+export function withBacktests(stats, counts) {
+  const out = { ...stats }
+  for (const r of counts || []) {
+    if (!r?.trader) continue
+    const s = { ...(out[r.trader] || EMPTY_STATS) }
+    s.btJournal = Number(r.journaled) || 0
+    s.btDemo = Number(r.demo_trades) || 0
+    s.backtests = Number(r.backtests) || s.btJournal + s.btDemo
+    out[r.trader] = s
+  }
+  return out
 }

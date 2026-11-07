@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 import { signPaths, signAvatar } from './storage'
 import { useAuth } from '../context/AuthContext'
 import { isUploaded } from './avatars'
-import { floorStats } from './floor'
+import { floorStats, withBacktests } from './floor'
 
 /**
  * Signed URLs for a list of storage paths, refreshed when the list changes.
@@ -247,13 +247,20 @@ export function useFloorStats() {
 
   const reload = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase
-      .from('journal_entries')
-      .select('user_id, outcome, entry_date')
-      .eq('is_shared', true)
-      .eq('kind', 'journal')
-      .order('entry_date', { ascending: false })
-    setStats(floorStats(data || []))
+    const [shared, counts] = await Promise.all([
+      supabase
+        .from('journal_entries')
+        .select('user_id, outcome, entry_date')
+        .eq('is_shared', true)
+        .eq('kind', 'journal')
+        .order('entry_date', { ascending: false }),
+      // Backtests cannot be read across accounts: the P&L ones are private
+      // rows and the journalled ones need not be shared. This function
+      // returns counts and nothing else. See migration 023.
+      supabase.rpc('backtest_counts'),
+    ])
+    if (counts.error) console.warn('backtest counts unavailable:', counts.error.message)
+    setStats(withBacktests(floorStats(shared.data || []), counts.data))
     setLoading(false)
   }, [user])
 

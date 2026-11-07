@@ -91,10 +91,12 @@ export function SidebarPresence() {
 }
 
 /**
- * Somebody's record, read from the shared journal rather than their trades.
+ * Somebody's record, read from the shared journal rather than their trades,
+ * plus a count of the backtests they have run.
  *
  * There is no money on this card and there never will be: P&L is private per
  * user, and the journal is the only thing the two of you agreed to share.
+ * The backtest figure is a count and nothing else, for the same reason.
  */
 function TraderCard({ trader, stats, onClose }) {
   const s = stats
@@ -145,11 +147,21 @@ function TraderCard({ trader, stats, onClose }) {
             </div>
             <div className="sub">{s.unmarked > 0 ? `${s.unmarked} unmarked` : 'from the journal'}</div>
           </div>
+          <div className="card stat" style={{ gridColumn: '1 / -1' }}>
+            <div className="label">Backtests run</div>
+            <div className="value mono">{s.backtests}</div>
+            <div className="sub">
+              {s.backtests > 0
+                ? `${s.btJournal} backtested · ${s.btDemo} on backtest P&L`
+                : 'Backtesting and Backtest P&L together'}
+            </div>
+          </div>
         </div>
 
         <div className="tiny faint">
           Counted from shared journal entries, so it is the same record
-          everybody else sees. Money stays private.
+          everybody else sees. Backtests are a bare count of both backtest
+          pages — no demo money travels with it. Money stays private.
         </div>
       </div>
     </Modal>
