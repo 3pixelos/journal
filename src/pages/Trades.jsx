@@ -104,6 +104,21 @@ export default function Trades() {
   )
 
   const scope = view === 'calendar' ? monthTrades : filtered
+
+  // Month by month, newest first, each row its own set of stats — and the
+  // stat row above already covers the lot, which is the "how much did I
+  // make, in total" answer.
+  const months = useMemo(() => {
+    const by = new Map()
+    for (const t of filtered) {
+      const k = monthOf(t.trade_date)
+      if (!by.has(k)) by.set(k, [])
+      by.get(k).push(t)
+    }
+    return [...by.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([m, rows]) => ({ month: m, ...stats(rows) }))
+  }, [filtered])
   const s = useMemo(() => stats(scope), [scope])
   const accountName = (id) => accounts.find((a) => a.id === id)?.name
 
@@ -128,6 +143,7 @@ export default function Trades() {
           onChange={(v) => { setView(v); setSelectedDay(null) }}
           options={[
             { value: 'calendar', label: 'Calendar' },
+            { value: 'all', label: 'All' },
             { value: 'list', label: 'List' },
           ]}
         />
@@ -136,7 +152,8 @@ export default function Trades() {
       </div>
 
       <div className="grid grid-4">
-        <Stat label={view === 'calendar' ? 'Net P&L (month)' : 'Net P&L'}
+        <Stat label={view === 'calendar' ? 'Net P&L (month)'
+                : view === 'all' ? 'Net P&L (all time)' : 'Net P&L'}
               value={money(s.net, { sign: true })} tone={pnlClass(s.net)}
               sub={`${s.count} trade${s.count === 1 ? '' : 's'}`} />
         <Stat label="Win rate" value={`${(s.winRate * 100).toFixed(0)}%`}
@@ -225,6 +242,54 @@ export default function Trades() {
           </Card>
 
         </>
+      ) : view === 'all' ? (
+        <Card title="Every month you have traded">
+          {months.length === 0 ? (
+            <Empty icon="▤" title="Nothing logged yet"
+                   hint="Log a trade and the months will stack up here." />
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Month</th><th className="right">Trades</th>
+                      <th className="right">W / L</th><th className="right">Win rate</th>
+                      <th className="right">Net</th></tr>
+                </thead>
+                <tbody>
+                  {months.map((m) => (
+                    <tr key={m.month} className="clickable"
+                        onClick={() => { setMonth(m.month); setView('calendar') }}>
+                      <td style={{ fontWeight: 650 }}>{monthLabel(m.month)}</td>
+                      <td className="right mono small muted">{m.count}</td>
+                      <td className="right mono small muted">{m.wins} / {m.losses}</td>
+                      <td className="right mono small">{(m.winRate * 100).toFixed(0)}%</td>
+                      <td className={`right mono ${pnlClass(m.net)}`} style={{ fontWeight: 700 }}>
+                        {money(m.net, { sign: true })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="total">
+                    <td style={{ fontWeight: 750 }}>All time</td>
+                    <td className="right mono small">{s.count}</td>
+                    <td className="right mono small">{s.wins} / {s.losses}</td>
+                    <td className="right mono" style={{ fontWeight: 700 }}>
+                      {(s.winRate * 100).toFixed(0)}%
+                    </td>
+                    <td className={`right mono ${pnlClass(s.net)}`}
+                        style={{ fontWeight: 800, fontSize: 15 }}>
+                      {money(s.net, { sign: true })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+          <div className="tiny faint" style={{ marginTop: 10 }}>
+            Click a month to open it in the calendar.
+          </div>
+        </Card>
       ) : (
         <Card>
           {filtered.length === 0 ? (

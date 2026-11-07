@@ -2344,3 +2344,42 @@ tr.me td:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 
 @media (max-width: 760px) {
   .stage { height: min(58vh, 460px); }
 }
+
+/* ===== trading floor cards ========================================== */
+/* The row is a button now, so it has to be told not to look like one. */
+.floor-row {
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.14s, border-color 0.14s;
+}
+.floor-row:hover { background: var(--glass-2); border-color: var(--glass-line); }
+
+/* wins in a row */
+.streak {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 11px; font-weight: 800; line-height: 1;
+  color: var(--warn); flex: 0 0 auto;
+}
+.streak span { font-variant-numeric: tabular-nums; }
+.streak.big { font-size: 14px; margin-left: 8px; vertical-align: 2px; }
+
+.bio {
+  white-space: pre-wrap;
+  font-size: 14px; line-height: 1.55; color: var(--text-2);
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  border: 1px solid var(--line-soft);
+}
+
+/* the all-time line under a month-by-month table */
+tfoot tr.total td {
+  border-top: 2px solid var(--line);
+  background: var(--accent-soft);
+  padding-top: 11px;
+}

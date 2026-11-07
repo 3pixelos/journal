@@ -21,6 +21,7 @@ export default function Settings() {
 
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState('mono')
+  const [bio, setBio] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -34,6 +35,7 @@ export default function Settings() {
   useEffect(() => {
     setName(profile?.display_name || '')
     setAvatar(profile?.avatar || 'mono')
+    setBio(profile?.bio || '')
   }, [profile])
   function flash(m) {
     setMsg(m)
@@ -79,7 +81,7 @@ export default function Settings() {
     setBusy(true)
     const { data, error } = await supabase
       .from('profiles')
-      .update({ display_name: name.trim() || 'Trader', avatar })
+      .update({ display_name: name.trim() || 'Trader', avatar, bio: bio.trim() || null })
       .eq('id', user.id)
       .select()
       .single()
@@ -196,6 +198,19 @@ export default function Settings() {
                   <span className="nm">{a.name}</span>
                 </button>
               ))}
+            </div>
+          </Field>
+
+          <Field label="Bio">
+            <textarea
+              rows={3}
+              value={bio}
+              maxLength={280}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="How you trade, what you are working on — whatever you want on your card."
+            />
+            <div className="tiny faint" style={{ marginTop: 4 }}>
+              {bio.length}/280 · shown on the trading floor when someone opens your profile.
             </div>
           </Field>
 

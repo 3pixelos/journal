@@ -28,7 +28,7 @@ export function PresenceProvider({ children }) {
     const fetchProfiles = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, last_seen_at, avatar')
+        .select('id, display_name, last_seen_at, avatar, bio')
         .order('display_name')
       if (alive) {
         setProfiles(data || [])

@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import { signPaths, signAvatar } from './storage'
 import { useAuth } from '../context/AuthContext'
 import { isUploaded } from './avatars'
+import { floorStats } from './floor'
 
 /**
  * Signed URLs for a list of storage paths, refreshed when the list changes.
@@ -230,4 +231,32 @@ export function useAvatarUrl(avatar) {
   }, [avatar, uploaded])
 
   return url
+}
+
+/**
+ * Everyone's record from the shared journal, keyed by user id.
+ *
+ * `is_shared` is filtered explicitly rather than left to row-level security:
+ * the policy also returns your own unshared entries, which would make your
+ * own win rate a different number from the one everybody else is shown.
+ */
+export function useFloorStats() {
+  const { user } = useAuth()
+  const [stats, setStats] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  const reload = useCallback(async () => {
+    if (!user) return
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('user_id, outcome, entry_date')
+      .eq('is_shared', true)
+      .eq('kind', 'journal')
+      .order('entry_date', { ascending: false })
+    setStats(floorStats(data || []))
+    setLoading(false)
+  }, [user])
+
+  useEffect(() => { reload() }, [reload])
+  return { stats, loading, reload }
 }
