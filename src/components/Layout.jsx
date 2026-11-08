@@ -60,11 +60,12 @@ export default function Layout() {
         >
           <Avatar name={name} avatar={profile?.avatar} />
           <div className="grow" style={{ minWidth: 0 }}>
+            {/* The address used to sit under the name. It is the one thing
+                here that is worth nothing to you — you know who you are
+                signed in as — and is read by anyone looking over your
+                shoulder or at a shared screen. */}
             <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {name}
-            </div>
-            <div className="tiny faint" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.email}
             </div>
           </div>
         </div>
