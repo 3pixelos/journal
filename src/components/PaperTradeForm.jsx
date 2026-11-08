@@ -63,18 +63,21 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
 
   // a day you passed on: no side, no size, just why
   const stood = form.outcome === 'no_trade'
+  // break even: you took it, it came back flat. A side, no amount — the
+  // whole point of B/E is that there is no number to type.
+  const be = form.outcome === 'breakeven'
   const amount = Math.abs(Number(form.amount) || 0)
   // the sign comes from the result, so the amount is always typed positive
-  const pnl = stood ? 0 : form.outcome === 'loss' ? -amount : amount
-  const ready = stood ? true : Boolean(form.outcome) && amount > 0
+  const pnl = stood || be ? 0 : form.outcome === 'loss' ? -amount : amount
+  const ready = stood || be ? true : Boolean(form.outcome) && amount > 0
 
   async function save(e) {
     e.preventDefault()
     setBusy(true)
     setError('')
     try {
-      if (!form.outcome) throw new Error('Win, loss, or did you stand aside?')
-      if (!stood && !amount) throw new Error('How much did it make or lose?')
+      if (!form.outcome) throw new Error('Win, loss, break even, or did you stand aside?')
+      if (!stood && !be && !amount) throw new Error('How much did it make or lose?')
 
       const payload = {
         user_id: user.id,
@@ -139,6 +142,7 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
             options={[
               { value: 'win', label: 'Win' },
               { value: 'loss', label: 'Loss' },
+              { value: 'breakeven', label: '→ B/E' },
               { value: 'no_trade', label: '⊘ No trade' },
             ]}
           />
@@ -154,23 +158,27 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
               />
             </Field>
 
-            <Field label={form.outcome === 'loss' ? 'How much did it lose?' : 'How much did it make?'}>
-              <input
-                type="number" step="any" min="0" value={form.amount} onChange={set('amount')}
-                placeholder="250"
-                style={{ fontSize: 19, fontWeight: 700 }}
-              />
-            </Field>
+            {!be && (
+              <Field label={form.outcome === 'loss' ? 'How much did it lose?' : 'How much did it make?'}>
+                <input
+                  type="number" step="any" min="0" value={form.amount} onChange={set('amount')}
+                  placeholder="250"
+                  style={{ fontSize: 19, fontWeight: 700 }}
+                />
+              </Field>
+            )}
           </>
         )}
 
         {ready && !stood && (
           <div className="daysum">
-            <span className={`big ${form.outcome === 'loss' ? 'neg' : 'pos'}`}>
-              {money(pnl, { sign: true })}
+            <span className={`big ${be ? '' : form.outcome === 'loss' ? 'neg' : 'pos'}`}>
+              {be ? money(0) : money(pnl, { sign: true })}
             </span>
             <span className="muted small">
-              goes on {longDate(date)} · {form.direction === 'long' ? 'long' : 'short'}
+              {be
+                ? `flat on ${longDate(date)} · counts as a trade, never as a win or a loss`
+                : `goes on ${longDate(date)} · ${form.direction === 'long' ? 'long' : 'short'}`}
             </span>
           </div>
         )}

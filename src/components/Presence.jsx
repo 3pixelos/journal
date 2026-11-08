@@ -133,7 +133,9 @@ function TraderCard({ trader, stats, onClose }) {
             <div className="value mono">
               {s.decided ? `${(s.winRate * 100).toFixed(0)}%` : '—'}
             </div>
-            <div className="sub">{s.wins}W · {s.losses}L</div>
+            <div className="sub">
+              {s.wins}W · {s.losses}L{s.be > 0 ? ` · ${s.be} B/E` : ''}
+            </div>
           </div>
           <div className="card stat">
             <div className="label">On a run of</div>

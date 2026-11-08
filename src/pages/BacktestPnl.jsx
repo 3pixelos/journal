@@ -107,6 +107,11 @@ export default function BacktestPnl() {
   // Days you passed on carry no P&L and belong nowhere near a win rate.
   const taken = useMemo(() => trades.filter((t) => t.outcome !== 'no_trade'), [trades])
   const aside = useMemo(() => trades.filter((t) => t.outcome === 'no_trade'), [trades])
+  // Break even is a trade you took, so it stays in `taken` and in the trade
+  // count. It carries zero P&L, which is why every figure computed from the
+  // sign of the money — win rate, profit factor, the calendar — already
+  // leaves it out without being told to.
+  const flat = useMemo(() => trades.filter((t) => t.outcome === 'breakeven'), [trades])
   const stoodAside = useMemo(
     () => Object.fromEntries(aside.map((t) => [t.trade_date, t])),
     [aside]
@@ -225,6 +230,7 @@ export default function BacktestPnl() {
             <div className={`hero-value ${pnlClass(s.net)}`}>{money(s.net, { sign: true })}</div>
             <div className="hero-sub">
               {s.count} trade{s.count === 1 ? '' : 's'} · {(s.winRate * 100).toFixed(0)}% win rate
+              {flat.length > 0 && ` · ${flat.length} break even`}
               {aside.length > 0 && ` · ${aside.length} day${aside.length === 1 ? '' : 's'} stood aside`}
             </div>
           </div>
@@ -243,7 +249,7 @@ export default function BacktestPnl() {
 
       <div className="grid grid-4">
         <Stat label="Win rate" value={`${(s.winRate * 100).toFixed(0)}%`}
-              sub={`${s.wins}W · ${s.losses}L`} />
+              sub={`${s.wins}W · ${s.losses}L${flat.length ? ` · ${flat.length} B/E` : ''}`} />
         <Stat label="Profit factor"
               value={s.profitFactor === Infinity ? '∞' : num(s.profitFactor)}
               sub={`${money(s.grossWin)} / ${money(s.grossLoss)}`} />
@@ -324,9 +330,13 @@ export default function BacktestPnl() {
                       <td>
                         {t.outcome === 'no_trade' ? (
                           <span className="faint small">—</span>
+                        ) : t.outcome === 'breakeven' ? (
+                          <span className="jcard-tag be">→ B/E</span>
                         ) : (
-                          <span className={`jcard-tag ${Number(t.pnl) >= 0 ? 'win' : 'loss'}`}>
-                            {Number(t.pnl) >= 0 ? '↗ Win' : '↘ Loss'}
+                          // the stored result, not the sign of the money: a
+                          // flat trade is zero, and zero is not a win
+                          <span className={`jcard-tag ${t.outcome === 'loss' ? 'loss' : 'win'}`}>
+                            {t.outcome === 'loss' ? '↘ Loss' : '↗ Win'}
                           </span>
                         )}
                       </td>
@@ -337,6 +347,7 @@ export default function BacktestPnl() {
                       </td>
                       <td className={`right mono ${pnlClass(t.pnl)}`} style={{ fontWeight: 700 }}>
                         {t.outcome === 'no_trade' ? <span className="faint">—</span>
+                          : t.outcome === 'breakeven' ? <span className="faint">{money(0)}</span>
                           : money(t.pnl, { sign: true })}
                       </td>
                       <td className="right">
@@ -419,7 +430,9 @@ function LooseCharts({ userId, trades, onLinked }) {
   const label = (t) =>
     `${shortDate(t.trade_date)} · ${t.outcome === 'no_trade'
       ? 'stood aside'
-      : `${t.direction === 'long' ? '↑' : '↓'} ${money(t.pnl, { sign: true })}`}`
+      : t.outcome === 'breakeven'
+        ? `${t.direction === 'long' ? '↑' : '↓'} break even`
+        : `${t.direction === 'long' ? '↑' : '↓'} ${money(t.pnl, { sign: true })}`}`
 
   return (
     <Card

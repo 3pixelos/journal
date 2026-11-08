@@ -458,14 +458,14 @@ export default function JournalForm({
               <Segmented
                 value={form.outcome}
                 onChange={(v) => setForm((f) => ({ ...f, outcome: f.outcome === v ? '' : v }))}
-                options={isBacktest
-                  // a test either worked or it did not
-                  ? [{ value: 'win', label: 'Win' }, { value: 'loss', label: 'Loss' }]
-                  : [
-                      { value: 'win', label: 'Win' },
-                      { value: 'loss', label: 'Loss' },
-                      { value: 'breakeven', label: 'B/E' },
-                    ]}
+                // B/E on both: a backtested setup can come back flat for
+                // the same reasons a live one does, and calling that a win
+                // or a loss is the one thing a win rate cannot survive.
+                options={[
+                  { value: 'win', label: 'Win' },
+                  { value: 'loss', label: 'Loss' },
+                  { value: 'breakeven', label: 'B/E' },
+                ]}
               />
             </Field>
             <Field label="Visibility">

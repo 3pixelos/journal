@@ -238,6 +238,7 @@ export default function Journal() {
               { value: '', label: 'All' },
               { value: 'win', label: 'Wins' },
               { value: 'loss', label: 'Losses' },
+              { value: 'breakeven', label: 'B/E' },
               { value: 'no_trade', label: '⊘ Stood aside' },
             ]}
           />

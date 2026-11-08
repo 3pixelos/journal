@@ -7,16 +7,20 @@
  * number on your own card is the same number your partner sees.
  */
 
-/** Days you stood aside are not wins and not losses, so they count in the
- *  total and nowhere else. */
+/** Days you stood aside, and trades that came back flat, are not wins and
+ *  not losses, so they count in the total and nowhere else. */
 const played = (e) => e.outcome === 'win' || e.outcome === 'loss'
+
+/** Outcomes that are a real result without being a win or a loss. */
+const NEITHER = ['breakeven', 'no_trade']
 
 /**
  * Consecutive wins, counting back from the most recent entry.
  *
  * A day you passed on does not break it — standing aside is not a loss, and
  * a streak that dies because you were disciplined on a Tuesday is a streak
- * that punishes the right call.
+ * that punishes the right call. A break even does not break it either, for
+ * the plainer reason that it is not a loss: only a loss ends a run.
  */
 function streakOf(sorted) {
   let n = 0
@@ -60,7 +64,10 @@ export function floorStats(entries) {
       wins,
       losses,
       aside: sorted.filter((e) => e.outcome === 'no_trade').length,
-      unmarked: sorted.filter((e) => !played(e) && e.outcome !== 'no_trade').length,
+      be: sorted.filter((e) => e.outcome === 'breakeven').length,
+      // genuinely unlabelled: an entry waiting to be marked, which is not
+      // the same thing as one marked as neither a win nor a loss
+      unmarked: sorted.filter((e) => !played(e) && !NEITHER.includes(e.outcome)).length,
       winRate: decided ? wins / decided : 0,
       decided,
       streak: streakOf(sorted),
@@ -76,7 +83,7 @@ export function floorStats(entries) {
 
 /** Nothing logged yet, in the shape the card expects. */
 export const EMPTY_STATS = {
-  entries: 0, wins: 0, losses: 0, aside: 0, unmarked: 0,
+  entries: 0, wins: 0, losses: 0, aside: 0, be: 0, unmarked: 0,
   winRate: 0, decided: 0, streak: 0, best: 0, last: null,
   backtests: 0, btJournal: 0, btDemo: 0,
 }
