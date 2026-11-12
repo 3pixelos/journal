@@ -2359,6 +2359,30 @@ tr.me td:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 
 }
 .floor-row:hover { background: var(--glass-2); border-color: var(--glass-line); }
 
+/* The top-bar stack opens the floor, so it is a button too — and on a
+   phone it is the only door to it, which is why it is sized for a thumb
+   rather than a cursor. */
+.presence-btn {
+  background: none; border: 1px solid transparent; font: inherit;
+  cursor: pointer; padding: 4px 7px; border-radius: 99px;
+  transition: background 0.14s, border-color 0.14s;
+}
+.presence-btn:hover { background: var(--glass-2); border-color: var(--glass-line); }
+
+/* The floor inside the sheet is the same list without the sidebar's
+   divider, and with rows a finger can actually hit. */
+.floor-sheet {
+  padding: 0; border-top: none; margin-bottom: 0; gap: 4px;
+}
+.floor-sheet .floor-row { padding: 9px 8px; gap: 10px; }
+.floor-sheet .floor-name { font-size: 14px; color: var(--text); }
+.floor-sheet .floor-when { font-size: 11px; }
+
+@media (max-width: 760px) {
+  .presence-btn { padding: 5px 8px; }
+  .presence-btn .tiny { display: none; }
+}
+
 /* wins in a row */
 .streak {
   display: inline-flex; align-items: center; gap: 2px;

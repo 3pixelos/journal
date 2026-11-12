@@ -6,23 +6,85 @@ import { relTime, longDate } from '../lib/format'
 import { Modal } from './ui'
 import Avatar from './Avatar'
 
-/** Compact stack of who is online, for the top bar. */
+/**
+ * Who is about, for the top bar — and on a phone, the only way in.
+ *
+ * The sidebar that holds the trading floor is hidden below 760px, so on a
+ * phone this is the whole of it: tap the faces and the floor opens as a
+ * sheet, with everybody's card behind it. It shows the full roster rather
+ * than only who is online, because a bar that disappears when your partner
+ * logs off would take their card away with it.
+ */
 export function PresenceBar() {
   const { roster } = usePresence()
+  const [open, setOpen] = useState(false)
+  if (!roster.length) return null
+
   const online = roster.filter((r) => r.isOnline)
-  if (!online.length) return null
+  const label = online.length === 0
+    ? 'Nobody on'
+    : online.length === 1 && online[0].isMe
+      ? 'Only you'
+      : `${online.length} online`
 
   return (
-    <div className="presence-row" title={online.map((o) => o.display_name).join(', ')}>
-      <div className="avatar-stack">
-        {online.slice(0, 4).map((p) => (
-          <Avatar key={p.id} name={p.display_name} avatar={p.avatar} size="sm" dot online />
-        ))}
+    <>
+      <button
+        type="button"
+        className="presence-row presence-btn"
+        onClick={() => setOpen(true)}
+        title="Open the trading floor"
+      >
+        <div className="avatar-stack">
+          {roster.slice(0, 4).map((p) => (
+            <Avatar
+              key={p.id}
+              name={p.display_name}
+              avatar={p.avatar}
+              size="sm"
+              dot
+              online={p.isOnline}
+            />
+          ))}
+        </div>
+        <span className="tiny muted nowrap">{label}</span>
+      </button>
+      {open && <FloorSheet onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
+/**
+ * The floor as a popup, for when there is no sidebar to put it in.
+ *
+ * One modal at a time: picking somebody swaps the list for their card, and
+ * closing the card brings the list back, so a phone never ends up with two
+ * stacked sheets and an Escape key that shuts both.
+ */
+function FloorSheet({ onClose }) {
+  const { roster } = usePresence()
+  const { stats } = useFloorStats()
+  const [open, setOpen] = useState(null)
+
+  if (open) {
+    return (
+      <TraderCard
+        trader={open}
+        stats={stats[open.id] || EMPTY_STATS}
+        onClose={() => setOpen(null)}
+      />
+    )
+  }
+
+  return (
+    <Modal title="Trading floor" onClose={onClose}>
+      <div className="floor floor-sheet">
+        <FloorRows roster={roster} stats={stats} onPick={setOpen} />
       </div>
-      <span className="tiny muted nowrap">
-        {online.length === 1 && online[0].isMe ? 'Only you' : `${online.length} online`}
-      </span>
-    </div>
+      <div className="tiny faint" style={{ marginTop: 12 }}>
+        Tap anybody to see their record.
+      </div>
+    </Modal>
   )
 }
 
@@ -52,32 +114,7 @@ export function SidebarPresence() {
   return (
     <div className="floor">
       <div className="floor-label">Trading floor</div>
-      {roster.map((p) => {
-        const s = stats[p.id] || EMPTY_STATS
-        return (
-          <button
-            type="button"
-            className={`floor-row ${p.isOnline ? '' : 'away'}`}
-            key={p.id}
-            onClick={() => setOpen(p)}
-            title={`${p.display_name}'s record`}
-          >
-            <Avatar name={p.display_name} avatar={p.avatar} size="sm" dot online={p.isOnline} />
-            <div className="grow" style={{ minWidth: 0 }}>
-              <div className="floor-name">
-                {p.display_name}
-                {p.isMe && <span className="tiny faint"> · you</span>}
-              </div>
-              <div className="floor-when">
-                {p.isOnline
-                  ? 'Active now'
-                  : p.last_seen_at ? relTime(p.last_seen_at) : 'Not seen yet'}
-              </div>
-            </div>
-            <Streak n={s.streak} />
-          </button>
-        )
-      })}
+      <FloorRows roster={roster} stats={stats} onPick={setOpen} />
 
       {open && (
         <TraderCard
@@ -88,6 +125,37 @@ export function SidebarPresence() {
       )}
     </div>
   )
+}
+
+/** One tappable row per trader. Shared, so the phone sheet and the sidebar
+ *  cannot drift apart. */
+function FloorRows({ roster, stats, onPick }) {
+  return roster.map((p) => {
+    const s = stats[p.id] || EMPTY_STATS
+    return (
+      <button
+        type="button"
+        className={`floor-row ${p.isOnline ? '' : 'away'}`}
+        key={p.id}
+        onClick={() => onPick(p)}
+        title={`${p.display_name}'s record`}
+      >
+        <Avatar name={p.display_name} avatar={p.avatar} size="sm" dot online={p.isOnline} />
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div className="floor-name">
+            {p.display_name}
+            {p.isMe && <span className="tiny faint"> · you</span>}
+          </div>
+          <div className="floor-when">
+            {p.isOnline
+              ? 'Active now'
+              : p.last_seen_at ? relTime(p.last_seen_at) : 'Not seen yet'}
+          </div>
+        </div>
+        <Streak n={s.streak} />
+      </button>
+    )
+  })
 }
 
 /**

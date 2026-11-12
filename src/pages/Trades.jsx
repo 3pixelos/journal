@@ -58,11 +58,17 @@ export default function Trades() {
         .order('trade_date', { ascending: false })
         .order('created_at', { ascending: false }),
       // days reviewed and passed on (no trade, so otherwise blank) and the
-      // reason a red day went red
+      // reason a red day went red.
+      //
+      // kind='journal' matters: a backtest is a journal entry too, and
+      // without this filter a day you stood aside inside a backtested
+      // month — or a backtested loss you marked as your own fault —
+      // painted itself onto the live calendar as if it had happened.
       supabase
         .from('journal_entries')
         .select('id, entry_date, reasoning, title, outcome, fault')
         .eq('user_id', user.id)
+        .eq('kind', 'journal')
         .or('outcome.eq.no_trade,fault.in.(mine,news)'),
     ])
     const rows = data || []
