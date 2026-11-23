@@ -10,6 +10,7 @@ import { stats, byDay } from '../lib/calc'
 import { Card, Stat, Empty, Loading, Field, Alert, DeleteButton, ChartViewer } from '../components/ui'
 import TradeCalendar from '../components/TradeCalendar'
 import PaperTradeForm from '../components/PaperTradeForm'
+import Celebrate from '../components/Celebrate'
 
 const monthLabel = (m) =>
   parseDateStr(`${m}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -42,6 +43,7 @@ export default function BacktestPnl() {
   const [startBalance, setStartBalance] = useState('10000')
 
   const [openDay, setOpenDay] = useState(null)
+  const [cheer, setCheer] = useState(null)      // the win/loss moment
   const [editing, setEditing] = useState(null)
   const [gallery, setGallery] = useState(null)   // { paths, i } — charts being viewed
 
@@ -362,6 +364,8 @@ export default function BacktestPnl() {
         </Card>
       )}
 
+      {cheer && <Celebrate kind={cheer} onDone={() => setCheer(null)} />}
+
       {gallery && (
         <ChartViewer
           urls={gallery.paths.map((p) => shotUrls[p]).filter(Boolean)}
@@ -377,7 +381,7 @@ export default function BacktestPnl() {
           date={openDay || todayStr()}
           trade={editing.isNew ? null : editing}
           onClose={() => setEditing(null)}
-          onSaved={() => loadTrades(active.id)}
+          onSaved={(cheered) => { if (cheered) setCheer(cheered); loadTrades(active.id) }}
           onDeleted={deleteTrade}
         />
       )}

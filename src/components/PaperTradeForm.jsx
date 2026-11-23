@@ -108,7 +108,11 @@ export default function PaperTradeForm({ sessionId, date, trade, onClose, onSave
         userId: user.id, backtestTradeId: rowId, paths, prune: chartsLoaded,
       })
 
-      onSaved?.()
+      // same rule as the journal form: the moment is for a result that
+      // just changed, not for re-saving one that was already there
+      const marked = payload.outcome === 'win' || payload.outcome === 'loss'
+      const changed = payload.outcome !== (trade?.outcome ?? null)
+      onSaved?.(marked && changed ? payload.outcome : null)
       onClose()
     } catch (err) {
       setError(err.message || String(err))

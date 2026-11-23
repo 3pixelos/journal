@@ -340,7 +340,7 @@ export default function Journal() {
           entry={editing}
           trades={trades}
           onClose={() => { setShowForm(false); setEditing(null) }}
-          onSaved={load}
+          onSaved={(row, cheered) => { if (cheered) setCheer(cheered); load() }}
           onDeleted={handleDelete}
         />
       )}

@@ -255,7 +255,13 @@ export default function JournalForm({
         prune: chartsLoaded,
       })
 
-      onSaved?.(row)
+      // The win/loss moment belongs here as much as on the Mark-as chips:
+      // picking Win and hitting save is the same decision, so it gets the
+      // same answer. Only when the result actually changed — re-saving an
+      // entry to fix a typo is not a fresh win.
+      const marked = payload.outcome === 'win' || payload.outcome === 'loss'
+      const changed = payload.outcome !== (entry?.outcome ?? null)
+      onSaved?.(row, marked && changed ? payload.outcome : null)
       onClose()
     } catch (err) {
       setError(err.message || String(err))

@@ -390,7 +390,7 @@ export default function Backtesting() {
           entry={editing}
           kind="backtest"
           onClose={() => { setShowForm(false); setEditing(null) }}
-          onSaved={load}
+          onSaved={(row, cheered) => { if (cheered) setCheer(cheered); load() }}
           onDeleted={handleDelete}
         />
       )}
